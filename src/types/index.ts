@@ -1,59 +1,55 @@
-// BearWithMe Type Definitions
+// Navigation types
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { NavigatorScreenParams } from '@react-navigation/native';
 
-export interface User {
-  id: string;
-  name: string;
-  nickname: string;
-  sleepTime: string;
-  wakeTime: string;
-  workStartTime: string;
-  workEndTime: string;
-  stressors: string[];
-  createdAt: string;
-}
+export type JournalStackParamList = {
+  JournalsList: undefined;
+  JournalWriting: undefined;
+  JournalStep3: undefined;
+  JournalCompleted: undefined;
+};
 
-export type MoodLevel = 'great' | 'good' | 'okay' | 'low' | 'bad';
+export type MainTabParamList = {
+  Home: undefined;
+  Chat: undefined;
+  Journals: NavigatorScreenParams<JournalStackParamList>;
+  Profile: undefined;
+};
 
-export interface MoodEntry {
-  id: string;
-  level: MoodLevel;
-  intensity: number; // 1-10
-  note: string;
-  timestamp: string;
-  triggers?: string[];
-}
+export type RootStackParamList = {
+  Login: undefined;
+  SignUp: undefined;
+  OnboardingStep1: undefined;
+  OnboardingStep2: undefined;
+  OnboardingStep3: undefined;
+  OnboardingComplete: undefined;
+  MainTabs: NavigatorScreenParams<MainTabParamList>;
+};
 
+export type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
+
+// Domain types
 export interface JournalEntry {
   id: string;
+  day: string;
+  month: string;
   title: string;
-  content: string;
-  mood: MoodLevel;
-  timestamp: string;
-  tags?: string[];
+  date: Date;
 }
 
-export interface ChatMessage {
+export interface MoodOption {
   id: string;
-  role: 'user' | 'adam';
-  content: string;
-  timestamp: string;
-}
-
-export interface Pattern {
-  type: 'stress' | 'sleep' | 'mood' | 'routine';
-  description: string;
-  detectedAt: string;
-  frequency: number;
+  label: string;
+  emoji: string;
 }
 
 export interface OnboardingData {
-  step: number;
-  name?: string;
-  nickname?: string;
-  sleepTime?: string;
-  wakeTime?: string;
-  workStartTime?: string;
-  workEndTime?: string;
-  stressors?: string[];
-  initialMood?: MoodLevel;
+  nickname: string;
+  birthday: string;
+  chatStyle: string;
+  occupation: string;
+  sleepTime: string;
+  wakeUpTime: string;
+  habit: string;
+  stressTriggers: string[];
 }
