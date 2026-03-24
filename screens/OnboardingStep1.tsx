@@ -7,16 +7,28 @@ import {
   StyleSheet,
   StatusBar,
   Image,
+  ScrollView,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useApp } from '../src/contexts/AppContext';
 
 const OnboardingStep1: React.FC = () => {
+  const genderOptions = ['Male', 'Female', 'Other'];
+  const chatStyleOptions = [
+    'Listen & support me',
+    'Help me solve this',
+    'Challenge my thinking',
+    'Keep me calm',
+    'Be direct',
+  ];
+
   const [nickname, setNickname] = useState('');
   const [birthday, setBirthday] = useState('');
   const [gender, setGender] = useState('');
   const [chatStyle, setChatStyle] = useState('');
+  const [showGenderOptions, setShowGenderOptions] = useState(false);
+  const [showChatStyleOptions, setShowChatStyleOptions] = useState(false);
   const navigation = useNavigation<any>();
   const { setUser } = useApp();
 
@@ -47,79 +59,135 @@ const OnboardingStep1: React.FC = () => {
         />
       </TouchableOpacity>
 
-      {/* Step Indicator */}
-      <View style={styles.stepContainer}>
-        <Text style={styles.stepText}>Step 1 of 3</Text>
-      </View>
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Step Indicator */}
+        <View style={styles.stepContainer}>
+          <Text style={styles.stepText}>Step 1 of 3</Text>
+        </View>
 
-      {/* Progress Bar */}
-      <View style={styles.progressBarContainer}>
-        <View style={styles.progressBarFill} />
-      </View>
+        {/* Progress Bar */}
+        <View style={styles.progressBarContainer}>
+          <View style={styles.progressBarFill} />
+        </View>
 
-      {/* Description */}
-      <Text style={styles.description}>
-        Tell Adam your name and how you'd like to chat. It helps him feel like a real friend.
-      </Text>
+        {/* Description */}
+        <Text style={styles.description}>
+          Tell Adam your name and how you'd like to chat. It helps him feel like a real friend.
+        </Text>
 
-      {/* Input Fields */}
-      <View style={styles.inputsContainer}>
-        {/* Nickname Input */}
-        <View style={styles.inputGroup}>
-          <Text style={styles.inputLabel}>What should I call you ?</Text>
-          <View style={styles.inputContainer}>
-            <TextInput
-              style={styles.input}
-              placeholder="Your Nickname"
-              placeholderTextColor="#7857e166"
-              value={nickname}
-              onChangeText={setNickname}
-            />
+        {/* Input Fields */}
+        <View style={styles.inputsContainer}>
+          {/* Nickname Input */}
+          <View style={styles.inputGroup}>
+            <Text style={styles.inputLabel}>What should I call you ?</Text>
+            <View style={styles.inputContainer}>
+              <TextInput
+                style={styles.input}
+                placeholder="Your Nickname"
+                placeholderTextColor="#7857e166"
+                value={nickname}
+                onChangeText={setNickname}
+              />
+            </View>
+          </View>
+
+          {/* Birthday Input */}
+          <View style={styles.inputGroup}>
+            <Text style={styles.inputLabel}>What's your birth date?</Text>
+            <View style={styles.inputContainer}>
+              <TextInput
+                style={styles.input}
+                placeholder="Your birthday!"
+                placeholderTextColor="#7857e166"
+                value={birthday}
+                onChangeText={setBirthday}
+              />
+            </View>
+          </View>
+
+          {/* Gender Dropdown */}
+          <View style={styles.inputGroup}>
+            <Text style={styles.inputLabel}>Gender</Text>
+            <TouchableOpacity
+              style={styles.inputContainer}
+              onPress={() => {
+                setShowGenderOptions(!showGenderOptions);
+                setShowChatStyleOptions(false);
+              }}
+            >
+              <Text style={[styles.input, !gender && styles.placeholder]}>
+                {gender || 'Select your gender'}
+              </Text>
+              <View style={styles.chevron}>
+                <View style={styles.chevronLineLeft} />
+                <View style={styles.chevronLineRight} />
+              </View>
+            </TouchableOpacity>
+            {showGenderOptions && (
+              <View style={styles.dropdownOptionsContainer}>
+                {genderOptions.map((option, index) => (
+                  <TouchableOpacity
+                    key={option}
+                    style={styles.dropdownOption}
+                    onPress={() => {
+                      setGender(option);
+                      setShowGenderOptions(false);
+                    }}
+                  >
+                    <Text style={styles.dropdownOptionText}>{option}</Text>
+                    {index < genderOptions.length - 1 && (
+                      <View style={styles.dropdownDivider} />
+                    )}
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+          </View>
+
+          {/* Chat Style Dropdown */}
+          <View style={styles.inputGroup}>
+            <Text style={styles.inputLabel}>How should I talk to you ?</Text>
+            <TouchableOpacity
+              style={styles.inputContainer}
+              onPress={() => {
+                setShowChatStyleOptions(!showChatStyleOptions);
+                setShowGenderOptions(false);
+              }}
+            >
+              <Text style={[styles.input, !chatStyle && styles.placeholder]}>
+                {chatStyle || 'Select a type'}
+              </Text>
+              <View style={styles.chevron}>
+                <View style={styles.chevronLineLeft} />
+                <View style={styles.chevronLineRight} />
+              </View>
+            </TouchableOpacity>
+            {showChatStyleOptions && (
+              <View style={styles.dropdownOptionsContainer}>
+                {chatStyleOptions.map((option, index) => (
+                  <TouchableOpacity
+                    key={option}
+                    style={styles.dropdownOption}
+                    onPress={() => {
+                      setChatStyle(option);
+                      setShowChatStyleOptions(false);
+                    }}
+                  >
+                    <Text style={styles.dropdownOptionText}>{option}</Text>
+                    {index < chatStyleOptions.length - 1 && (
+                      <View style={styles.dropdownDivider} />
+                    )}
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
           </View>
         </View>
-
-        {/* Birthday Input */}
-        <View style={styles.inputGroup}>
-          <Text style={styles.inputLabel}>What's your birth date?</Text>
-          <View style={styles.inputContainer}>
-            <TextInput
-              style={styles.input}
-              placeholder="Your birthday!"
-              placeholderTextColor="#7857e166"
-              value={birthday}
-              onChangeText={setBirthday}
-            />
-          </View>
-        </View>
-
-        {/* Gender Dropdown */}
-        <View style={styles.inputGroup}>
-          <Text style={styles.inputLabel}>Gender</Text>
-          <TouchableOpacity style={styles.inputContainer}>
-            <Text style={[styles.input, !gender && styles.placeholder]}>
-              {gender || 'Select your gender'}
-            </Text>
-            <View style={styles.chevron}>
-              <View style={styles.chevronLineLeft} />
-              <View style={styles.chevronLineRight} />
-            </View>
-          </TouchableOpacity>
-        </View>
-
-        {/* Chat Style Dropdown */}
-        <View style={styles.inputGroup}>
-          <Text style={styles.inputLabel}>How should I talk to you ?</Text>
-          <TouchableOpacity style={styles.inputContainer}>
-            <Text style={[styles.input, !chatStyle && styles.placeholder]}>
-              {chatStyle || 'Select a type'}
-            </Text>
-            <View style={styles.chevron}>
-              <View style={styles.chevronLineLeft} />
-              <View style={styles.chevronLineRight} />
-            </View>
-          </TouchableOpacity>
-        </View>
-      </View>
+      </ScrollView>
 
       {/* Continue Button */}
       <TouchableOpacity style={styles.continueButton} onPress={handleContinue}>
@@ -134,6 +202,12 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f3eded',
     paddingHorizontal: 20,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingBottom: 20,
   },
   backButton: {
     width: 28,
@@ -179,6 +253,33 @@ const styles = StyleSheet.create({
   },
   inputGroup: {
     marginBottom: 18,
+  },
+  dropdownOptionsContainer: {
+    marginTop: 8,
+    backgroundColor: '#ffffff',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#d9cfee',
+    overflow: 'hidden',
+    shadowColor: '#2b1b4d',
+    shadowOpacity: 0.12,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 6,
+  },
+  dropdownOption: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  dropdownOptionText: {
+    fontSize: 15,
+    fontFamily: 'Urbanist',
+    color: '#4f3f77',
+  },
+  dropdownDivider: {
+    height: 1,
+    backgroundColor: '#efe9fb',
+    marginTop: 12,
   },
   inputLabel: {
     fontSize: 16,

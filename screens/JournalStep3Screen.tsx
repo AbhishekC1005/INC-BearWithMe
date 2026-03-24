@@ -105,8 +105,8 @@ const JournalStep3Screen: React.FC = () => {
         {/* Adam Card (Locked) */}
         <View style={styles.adamCard}>
           <View style={styles.adamCardContent}>
-            <View style={styles.unlockBadge}>
-              <Text style={styles.unlockText}>Unlock after Journaling</Text>
+            <View style={styles.startChatBadge}>
+              <Text style={styles.startChatText}>Unlock after Journaling</Text>
             </View>
             <Text style={styles.adamTitle}>Adam is ready when you are.</Text>
             <Text style={styles.adamDescription}>
@@ -116,7 +116,7 @@ const JournalStep3Screen: React.FC = () => {
           </View>
           <View style={styles.adamImagePlaceholder}>
             <Image
-              source={require('../assets/Unlock_chat.png')}
+              source={require('../assets/Lock_chat.png')}
               style={styles.bearImage}
               resizeMode="contain"
             />
@@ -313,7 +313,7 @@ const styles = StyleSheet.create({
   },
   adamCard: {
     backgroundColor: colors.primary,
-    borderRadius: 16,
+    borderRadius: 19,
     padding: 16,
     flexDirection: 'row',
     alignItems: 'center',
@@ -321,15 +321,15 @@ const styles = StyleSheet.create({
   adamCardContent: {
     flex: 1,
   },
-  unlockBadge: {
-    backgroundColor: 'rgba(255,255,255,0.6)',
+  startChatBadge: {
+    backgroundColor: colors.white,
     borderRadius: 10,
     paddingHorizontal: 12,
     paddingVertical: 4,
     alignSelf: 'flex-start',
     marginBottom: 8,
   },
-  unlockText: {
+  startChatText: {
     fontSize: 12,
     fontFamily: 'Urbanist',
     color: colors.primary,
@@ -354,9 +354,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   bearImage: {
-    width: 77.37,
-    height: 154.75,
-    marginLeft: 50,
+    width: 184,
+    height: 185,
+    marginRight: 20,
+    marginBottom: 32.5,
   },
 });
 

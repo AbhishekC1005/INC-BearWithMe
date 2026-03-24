@@ -40,11 +40,17 @@ const HomeScreen: React.FC = () => {
   const { user } = useApp();
   const [selectedMood, setSelectedMood] = useState<string>('excellent');
   const [journalStep, setJournalStep] = useState<number>(1);
+  const [completedSteps, setCompletedSteps] = useState<number>(0);
+  const [journalCompleted, setJournalCompleted] = useState<boolean>(false);
   const [mainThingText, setMainThingText] = useState<string>('');
   const [needFromAdamText, setNeedFromAdamText] = useState<string>('');
   const nickname = route.params?.nickname || user?.name || 'Sudhir';
+  const journalEntry =
+    mainThingText.trim() || needFromAdamText.trim()
+      ? `${mainThingText.trim()} ${needFromAdamText.trim()}`.trim()
+      : 'Today I took time to reflect on my day and what I need next.';
   const totalSteps = 3;
-  const progressPercent: `${number}%` = `${(journalStep / totalSteps) * 100}%`;
+  const progressPercent: `${number}%` = `${(completedSteps / totalSteps) * 100}%`;
   const profileInitial = useMemo(() => {
     const value = nickname.trim();
     return value ? value.charAt(0).toUpperCase() : 'U';
@@ -52,11 +58,29 @@ const HomeScreen: React.FC = () => {
 
   const handleNext = () => {
     if (journalStep < totalSteps) {
+      setCompletedSteps(prev => Math.max(prev, journalStep));
       setJournalStep(prev => prev + 1);
       return;
     }
 
-    navigation.navigate('Journals');
+    setCompletedSteps(totalSteps);
+    setJournalCompleted(true);
+  };
+
+  const handleEdit = () => {
+    setJournalCompleted(false);
+    setJournalStep(totalSteps);
+  };
+
+  const handleBack = () => {
+    if (journalStep > 1) {
+      setCompletedSteps(prev => Math.max(0, prev - 1));
+      setJournalStep(prev => prev - 1);
+    }
+  };
+
+  const handleStartChat = () => {
+    navigation.navigate('Chat');
   };
 
   return (
@@ -89,120 +113,176 @@ const HomeScreen: React.FC = () => {
 
         {/* Journal Card */}
         <View style={styles.journalCard}>
-          <View style={styles.cardHeader}>
-            <View>
-              <Text style={styles.cardTitle}>How was your day?</Text>
-              <Text style={styles.cardSubtitle}>
-                Taking a moment to write down your thoughts helps Adam understand
-                you better before you chat.
-              </Text>
-            </View>
-            <Image
-              source={require('../assets/Journal.png')}
-              style={styles.journalCardIcon}
-              resizeMode="contain"
-            />
-          </View>
-
-          <View style={styles.progressBarContainer}>
-            <View style={[styles.progressBarFill, { width: progressPercent }]} />
-          </View>
-
-          {journalStep === 1 && (
+          {journalCompleted ? (
             <>
-              <Text style={styles.moodQuestion}>How are you feeling today?</Text>
+              <View style={styles.cardHeader}>
+                <View>
+                  <Text style={styles.cardTitle}>Journal Completed</Text>
+                  <Text style={styles.cardSubtitle}>
+                    Well done for taking this important step. Today you shared:
+                  </Text>
+                </View>
+                <Image
+                  source={require('../assets/Completed.png')}
+                  style={styles.journalCardIcon}
+                  resizeMode="contain"
+                />
+              </View>
 
-              <View style={styles.moodContainer}>
-                {moodOptions.map(option => (
-                  <TouchableOpacity
-                    key={option.id}
-                    style={[
-                      styles.moodOption,
-                      selectedMood === option.id && styles.moodOptionSelected,
-                    ]}
-                    onPress={() => setSelectedMood(option.id)}
-                  >
-                    <Text style={styles.moodEmoji}>{option.emoji}</Text>
-                    <Text
-                      style={[
-                        styles.moodLabel,
-                        selectedMood === option.id && styles.moodLabelSelected,
-                      ]}
-                    >
-                      {option.label}
-                    </Text>
+              <View style={styles.entryContainer}>
+                <Text style={styles.entryText}>{journalEntry}</Text>
+              </View>
+
+              <TouchableOpacity style={styles.editButton} onPress={handleEdit}>
+                <Text style={styles.editButtonText}>Edit</Text>
+              </TouchableOpacity>
+            </>
+          ) : (
+            <>
+              <View style={styles.cardHeader}>
+                <View>
+                  <Text style={styles.cardTitle}>How was your day?</Text>
+                  <Text style={styles.cardSubtitle}>
+                    Taking a moment to write down your thoughts helps Adam understand
+                    you better before you chat.
+                  </Text>
+                </View>
+                <Image
+                  source={require('../assets/Journal.png')}
+                  style={styles.journalCardIcon}
+                  resizeMode="contain"
+                />
+              </View>
+
+              <View style={styles.progressBarContainer}>
+                <View style={[styles.progressBarFill, { width: progressPercent }]} />
+              </View>
+
+              {journalStep === 1 && (
+                <>
+                  <Text style={styles.moodQuestion}>How are you feeling today?</Text>
+
+                  <View style={styles.moodContainer}>
+                    {moodOptions.map(option => (
+                      <TouchableOpacity
+                        key={option.id}
+                        style={[
+                          styles.moodOption,
+                          selectedMood === option.id && styles.moodOptionSelected,
+                        ]}
+                        onPress={() => setSelectedMood(option.id)}
+                      >
+                        <Text style={styles.moodEmoji}>{option.emoji}</Text>
+                        <Text
+                          style={[
+                            styles.moodLabel,
+                            selectedMood === option.id && styles.moodLabelSelected,
+                          ]}
+                        >
+                          {option.label}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </>
+              )}
+
+              {journalStep === 2 && (
+                <>
+                  <Text style={styles.journalQuestionText}>
+                    What's the main thing that happened today? (Even if it's just
+                    something small).
+                  </Text>
+                  <View style={styles.textInputContainer}>
+                    <TextInput
+                      style={styles.textInput}
+                      placeholder="e.g. I had a long day at college..."
+                      placeholderTextColor="#7857e166"
+                      value={mainThingText}
+                      onChangeText={setMainThingText}
+                      multiline
+                      textAlignVertical="top"
+                    />
+                  </View>
+                </>
+              )}
+
+              {journalStep === 3 && (
+                <>
+                  <Text style={styles.journalQuestionText}>
+                    What do you need most from Adam right now?
+                  </Text>
+                  <View style={styles.textInputContainer}>
+                    <TextInput
+                      style={styles.textInput}
+                      placeholder="e.g. Just listen to me...."
+                      placeholderTextColor="#7857e166"
+                      value={needFromAdamText}
+                      onChangeText={setNeedFromAdamText}
+                      multiline
+                      textAlignVertical="top"
+                    />
+                  </View>
+                </>
+              )}
+
+              <View style={styles.actionRow}>
+                {journalStep > 1 && (
+                  <TouchableOpacity style={styles.backButton} onPress={handleBack}>
+                    <Text style={styles.backButtonText}>Back</Text>
                   </TouchableOpacity>
-                ))}
+                )}
+                <TouchableOpacity style={styles.nextButton} onPress={handleNext}>
+                  <Text style={styles.nextButtonText}>
+                    {journalStep === totalSteps ? 'Finish' : 'Next'}
+                  </Text>
+                </TouchableOpacity>
               </View>
             </>
           )}
-
-          {journalStep === 2 && (
-            <>
-              <Text style={styles.journalQuestionText}>
-                What's the main thing that happened today? (Even if it's just
-                something small).
-              </Text>
-              <View style={styles.textInputContainer}>
-                <TextInput
-                  style={styles.textInput}
-                  placeholder="e.g. I had a long day at college..."
-                  placeholderTextColor="#7857e166"
-                  value={mainThingText}
-                  onChangeText={setMainThingText}
-                  multiline
-                  textAlignVertical="top"
-                />
-              </View>
-            </>
-          )}
-
-          {journalStep === 3 && (
-            <>
-              <Text style={styles.journalQuestionText}>
-                What do you need most from Adam right now?
-              </Text>
-              <View style={styles.textInputContainer}>
-                <TextInput
-                  style={styles.textInput}
-                  placeholder="e.g. Just listen to me...."
-                  placeholderTextColor="#7857e166"
-                  value={needFromAdamText}
-                  onChangeText={setNeedFromAdamText}
-                  multiline
-                  textAlignVertical="top"
-                />
-              </View>
-            </>
-          )}
-
-          <TouchableOpacity style={styles.nextButton} onPress={handleNext}>
-            <Text style={styles.nextButtonText}>
-              {journalStep === totalSteps ? 'Finish' : 'Next'}
-            </Text>
-          </TouchableOpacity>
         </View>
 
-        {/* Adam Card (Locked) */}
-        <TouchableOpacity style={styles.adamCard} onPress={() => navigation.navigate('Chat')}>
-          <View style={styles.adamCardContent}>
-            <View style={styles.unlockBadge}>
-              <Text style={styles.unlockText}>Unlock after Journaling</Text>
+        {journalCompleted ? (
+          <TouchableOpacity style={styles.adamCard} onPress={handleStartChat}>
+            <View style={styles.adamCardContent}>
+              <View style={styles.startChatBadge}>
+                <Text style={styles.startChatText}>Start Chat</Text>
+              </View>
+              <Text style={styles.adamTitle}>Talk to Adam</Text>
+              <Text style={styles.adamDescription}>
+                You recently discussed [Last Topic] in your journal. Feel like
+                diving deeper? Adam is ready.
+              </Text>
             </View>
-            <Text style={styles.adamTitle}>Adam is ready when you are.</Text>
-            <Text style={styles.adamDescription}>
-              Once you finish today's journaling, Step 2 will unlock. Adam is
-              waiting to hear how your day went!
-            </Text>
+            <View style={styles.adamImagePlaceholder}>
+              <Image
+                source={require('../assets/Lock_chat.png')}
+                style={styles.bearImage2}
+                resizeMode="contain"
+              />
+            </View>
+          </TouchableOpacity>
+        ) : (
+          <View style={styles.adamCard}>
+            <View style={styles.adamCardContent}>
+              <View style={styles.unlockBadge}>
+                <Text style={styles.unlockText}>Unlock after Journaling</Text>
+              </View>
+              <Text style={styles.adamTitle}>Adam is ready when you are.</Text>
+              <Text style={styles.adamDescription}>
+                Once you finish today's journaling, Step 2 will unlock. Adam is
+                waiting to hear how your day went!
+              </Text>
+            </View>
+            <View style={styles.adamImagePlaceholder}>
+              <Image
+                source={require('../assets/Unlock_chat.png')}
+                style={styles.bearImage}
+                resizeMode="contain"
+              />
+            </View>
           </View>
-          <View style={styles.adamImagePlaceholder}>
-            <Image
-              source={require('../assets/Unlock_chat.png')}
-              style={styles.bearImage}
-              resizeMode="contain"
-            />
-          </View>
-        </TouchableOpacity>
+        )}
       </View>
 
     </SafeAreaView>
@@ -376,10 +456,53 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   progressBarFill: {
-    width: 11,
+    width: 0,
     height: 6,
     backgroundColor: colors.primary,
     borderRadius: 10,
+  },
+  entryContainer: {
+    height: 150,
+    backgroundColor: 'rgba(120, 87, 225, 0.12)',
+    borderWidth: 1,
+    borderColor: colors.primary,
+    borderRadius: 10,
+    padding: 16,
+    marginTop: 16,
+    marginBottom: 16,
+  },
+  entryText: {
+    fontSize: 12,
+    fontFamily: 'Urbanist',
+    color: colors.primary,
+    lineHeight: 16,
+  },
+  editButton: {
+    height: 48,
+    borderWidth: 1,
+    borderColor: colors.primary,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  editButtonText: {
+    fontSize: 20,
+    fontFamily: 'Urbanist',
+    color: colors.primary,
+    fontWeight: '600',
+  },
+  completionBanner: {
+    backgroundColor: colors.white,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(120, 87, 225, 0.4)',
+    padding: 12,
+    marginBottom: 10,
+  },
+  completionText: {
+    fontSize: 14,
+    fontFamily: 'Urbanist',
+    color: colors.textPrimary,
   },
   journalQuestionText: {
     fontSize: 16,
@@ -441,6 +564,7 @@ const styles = StyleSheet.create({
   },
   nextButton: {
     height: 44,
+    flex: 1,
     backgroundColor: colors.primary,
     borderRadius: 10,
     justifyContent: 'center',
@@ -452,6 +576,26 @@ const styles = StyleSheet.create({
     color: colors.white,
     fontWeight: '600',
   },
+  actionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    columnGap: 10,
+  },
+  backButton: {
+    height: 44,
+    flex: 1,
+    borderWidth: 1,
+    borderColor: colors.primary,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  backButtonText: {
+    fontSize: 18,
+    fontFamily: 'Urbanist',
+    color: colors.primary,
+    fontWeight: '600',
+  },
   adamCard: {
     backgroundColor: colors.primary,
     borderRadius: 19,
@@ -459,6 +603,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     overflow: 'hidden',
+  },
+  adamCardUnlocked: {
+    backgroundColor: colors.primary,
+  },
+  startChatBadge: {
+    backgroundColor: colors.white,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    alignSelf: 'flex-start',
+    marginBottom: 8,
   },
   adamCardContent: {
     flex: 1,
@@ -472,6 +627,11 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   unlockText: {
+    fontSize: 12,
+    fontFamily: 'Urbanist',
+    color: colors.primary,
+  },
+   startChatText: {
     fontSize: 12,
     fontFamily: 'Urbanist',
     color: colors.primary,
@@ -499,6 +659,13 @@ const styles = StyleSheet.create({
     width: 77.37,
     height: 154.75,
     marginLeft: 50,
+  },
+  bearImage2: {
+    width: 164,
+    height: 185,
+    marginRight: 16,
+    marginBottom:25.5,
+
   },
 });
 

@@ -50,7 +50,7 @@
     "src/**/*.ts",
     "src/**/*.tsx",
     "App.tsx",
-    "SignUpScreen.tsx"
+    "screens/SignUpScreen.tsx"
   ],
   "exclude": [
     "node_modules",

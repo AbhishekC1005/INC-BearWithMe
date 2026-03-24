@@ -1,8 +1,8 @@
 import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../types';
-import { colors } from '../constants/theme';
 import { MainTabNavigator } from './MainTabNavigator';
+import { colors } from '../constants/theme';
 
 // Auth Screens
 import SplashScreen from '../../screens/SplashScreen';
@@ -14,6 +14,7 @@ import OnboardingStep1 from '../../screens/OnboardingStep1';
 import OnboardingStep2 from '../../screens/OnboardingStep2';
 import OnboardingStep3 from '../../screens/OnboardingStep3';
 import OnboardingComplete from '../../screens/OnboardingComplete';
+import JournalCompletedScreen from '../../screens/JournalCompletedScreen';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -42,6 +43,7 @@ export const RootNavigator = () => {
 
       {/* Main App Flow */}
       <Stack.Screen name="MainTabs" component={MainTabNavigator} />
+      <Stack.Screen name="JournalCompleted" component={JournalCompletedScreen} />
     </Stack.Navigator>
   );
 };

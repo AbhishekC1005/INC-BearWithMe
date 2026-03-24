@@ -47,6 +47,7 @@ export type RootStackParamList = {
       }
     | undefined;
   MainTabs: NavigatorScreenParams<MainTabParamList>;
+  JournalCompleted: undefined;
 };
 
 export type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
