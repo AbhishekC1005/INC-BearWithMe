@@ -37,13 +37,14 @@ const moodOptions: MoodOption[] = [
 const HomeScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
-  const { user } = useApp();
+  const { user, addJournalEntry, updateJournalEntry, journalEntries } = useApp();
   const [selectedMood, setSelectedMood] = useState<string>('excellent');
   const [journalStep, setJournalStep] = useState<number>(1);
   const [completedSteps, setCompletedSteps] = useState<number>(0);
   const [journalCompleted, setJournalCompleted] = useState<boolean>(false);
   const [mainThingText, setMainThingText] = useState<string>('');
   const [needFromAdamText, setNeedFromAdamText] = useState<string>('');
+  const [todayEntryId, setTodayEntryId] = useState<string | null>(null);
   const nickname = route.params?.nickname || user?.name || 'Sudhir';
   const journalEntry =
     mainThingText.trim() || needFromAdamText.trim()
@@ -56,6 +57,20 @@ const HomeScreen: React.FC = () => {
     return value ? value.charAt(0).toUpperCase() : 'U';
   }, [nickname]);
 
+  const getMoodEmoji = () => {
+    const moodMap: { [key: string]: string } = {
+      excellent: '😊',
+      neutral: '😐',
+      awful: '😢',
+    };
+    return moodMap[selectedMood] || '😐';
+  };
+
+  const getTodayEntry = () => {
+    const today = new Date().toDateString();
+    return journalEntries.find(entry => new Date(entry.timestamp).toDateString() === today);
+  };
+
   const handleNext = () => {
     if (journalStep < totalSteps) {
       setCompletedSteps(prev => Math.max(prev, journalStep));
@@ -63,8 +78,51 @@ const HomeScreen: React.FC = () => {
       return;
     }
 
-    setCompletedSteps(totalSteps);
-    setJournalCompleted(true);
+    // Save journal entry to AppContext
+    saveJournalEntry();
+  };
+
+  const saveJournalEntry = async () => {
+    const now = new Date();
+    const day = now.getDate().toString().padStart(2, '0');
+    const month = now.toLocaleString('en-US', { month: 'short' }).toUpperCase();
+    const year = now.getFullYear().toString();
+
+    const moodLabel =
+      selectedMood === 'excellent' ? 'Excellent' : 
+      selectedMood === 'neutral' ? 'Neutral' : 
+      'Awful';
+
+    const title = mainThingText.trim() || 'Daily Reflection';
+    const entryData = {
+      title,
+      content: journalEntry,
+      mainThing: mainThingText,
+      needFromAdam: needFromAdamText,
+      mood: moodLabel,
+      moodEmoji: getMoodEmoji(),
+      day,
+      month,
+      year,
+    };
+
+    try {
+      const existingEntry = getTodayEntry();
+      
+      if (existingEntry && (todayEntryId || existingEntry.id)) {
+        // Update existing entry if editing today's journal
+        await updateJournalEntry(existingEntry.id, entryData);
+      } else {
+        // Create new entry
+        await addJournalEntry(entryData);
+        setTodayEntryId(existingEntry?.id || null);
+      }
+      
+      setCompletedSteps(totalSteps);
+      setJournalCompleted(true);
+    } catch (error) {
+      console.error('Error saving journal entry:', error);
+    }
   };
 
   const handleEdit = () => {

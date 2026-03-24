@@ -9,9 +9,13 @@ import {
   FlatList,
   KeyboardAvoidingView,
   Platform,
+  Image,
+  Alert,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useApp } from '../src/contexts/AppContext';
+import { JournalEntry } from '../src/types';
 
 // Design tokens from Figma
 const colors = {
@@ -24,47 +28,39 @@ const colors = {
   border: '#7857e1',
 };
 
-// Journal entry type
-interface JournalEntry {
-  id: string;
-  day: string;
-  month: string;
-  title: string;
-  date: Date;
-}
-
-const mockJournals: JournalEntry[] = [
-  {
-    id: '1',
-    day: '12',
-    month: 'MAR',
-    title: 'Today I felt overwhelmed at college but managed to complete my tasks.',
-    date: new Date(2024, 2, 12),
-  },
-  {
-    id: '2',
-    day: '11',
-    month: 'MAR',
-    title: 'I had a calm evening walk and it helped reduce my stress a lot.',
-    date: new Date(2024, 2, 11),
-  },
-  {
-    id: '3',
-    day: '10',
-    month: 'MAR',
-    title: 'I argued with a friend, then reflected and resolved it respectfully.',
-    date: new Date(2024, 2, 10),
-  },
-];
-
 interface JournalCardProps {
   entry: JournalEntry;
   onPress: () => void;
+  onDelete: (id: string) => void;
 }
 
-const JournalCard: React.FC<JournalCardProps> = ({ entry, onPress }: JournalCardProps) => {
+const JournalCard: React.FC<JournalCardProps> = ({ entry, onPress, onDelete }: JournalCardProps) => {
+  const handleLongPress = () => {
+    Alert.alert(
+      'Delete Entry',
+      'Are you sure you want to delete this journal entry?',
+      [
+        {
+          text: 'Cancel',
+          onPress: () => {},
+          style: 'cancel',
+        },
+        {
+          text: 'Delete',
+          onPress: () => onDelete(entry.id),
+          style: 'destructive',
+        },
+      ]
+    );
+  };
+
   return (
-    <TouchableOpacity style={styles.journalCard} onPress={onPress}>
+    <TouchableOpacity
+      style={styles.journalCard}
+      onPress={onPress}
+      onLongPress={handleLongPress}
+      delayLongPress={500}
+    >
       <View style={styles.dateContainer}>
         <Text style={styles.dayText}>{entry.day}</Text>
         <Text style={styles.monthText}>{entry.month}</Text>
@@ -72,24 +68,39 @@ const JournalCard: React.FC<JournalCardProps> = ({ entry, onPress }: JournalCard
       <Text style={styles.titleText} numberOfLines={2}>
         {entry.title}
       </Text>
-      <View style={styles.chevron}>
-        <View style={styles.chevronLine} />
-        <View style={styles.chevronHead} />
-      </View>
+      <Text style={styles.chevronText}>›</Text>
     </TouchableOpacity>
   );
 };
 
 const JournalsScreen: React.FC = () => {
   const navigation = useNavigation<any>();
+  const { journalEntries, deleteJournalEntry } = useApp();
   const [searchText, setSearchText] = useState('');
 
+  const filteredEntries = journalEntries.filter(entry =>
+    entry.title.toLowerCase().includes(searchText.toLowerCase())
+  );
+
   const handleJournalPress = (entry: JournalEntry) => {
-    navigation.navigate('JournalCompleted');
+    navigation.navigate('JournalDetail', { id: entry.id });
+  };
+
+  const handleDeleteEntry = async (id: string) => {
+    try {
+      await deleteJournalEntry(id);
+    } catch (error) {
+      console.error('Error deleting journal entry:', error);
+      Alert.alert('Error', 'Failed to delete journal entry');
+    }
   };
 
   const renderJournalItem = ({ item }: { item: JournalEntry }) => (
-    <JournalCard entry={item} onPress={() => handleJournalPress(item)} />
+    <JournalCard 
+      entry={item} 
+      onPress={() => handleJournalPress(item)}
+      onDelete={handleDeleteEntry}
+    />
   );
 
   return (
@@ -106,13 +117,14 @@ const JournalsScreen: React.FC = () => {
       >
         {/* Search Bar */}
         <View style={styles.searchContainer}>
-          <View style={styles.searchIcon}>
-            <View style={styles.searchCircle} />
-            <View style={styles.searchHandle} />
-          </View>
+          <Image
+            source={require('../assets/Search_icon.png')}
+            style={styles.searchIcon}
+            resizeMode="contain"
+          />
           <TextInput
             style={styles.searchInput}
-            placeholder="Search "
+            placeholder="Search"
             placeholderTextColor="rgba(120, 87, 225, 0.4)"
             value={searchText}
             onChangeText={setSearchText}
@@ -121,7 +133,7 @@ const JournalsScreen: React.FC = () => {
 
         {/* Journal List */}
         <FlatList
-          data={mockJournals}
+          data={filteredEntries}
           renderItem={renderJournalItem}
           keyExtractor={item => item.id}
           contentContainerStyle={styles.listContent}
@@ -143,9 +155,9 @@ const styles = StyleSheet.create({
     fontSize: 44,
     fontFamily: 'Urbanist',
     color: colors.primary,
-    fontWeight: '700',
+    fontWeight: '500',
     paddingHorizontal: 16,
-    marginTop: 14,
+    marginTop: 25,
     marginBottom: 10,
   },
   content: {
@@ -191,26 +203,26 @@ const styles = StyleSheet.create({
     color: colors.primary,
   },
   listContent: {
-    paddingTop: 10,
+    paddingTop: 16,
     paddingHorizontal: 16,
-    paddingBottom: 8,
+    paddingBottom: 12,
   },
   journalCard: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: colors.white,
-    borderRadius: 16,
+    borderRadius: 18,
     borderWidth: 1,
     borderColor: colors.border,
-    padding: 13,
-    marginBottom: 8,
-    height: 70,
+    padding: 14,
+    marginBottom: 12,
+    height: 68,
   },
   dateContainer: {
-    width: 52,
-    height: 52,
+    width: 50,
+    height: 50,
     backgroundColor: colors.primary,
-    borderRadius: 9,
+    borderRadius: 10,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
@@ -230,37 +242,18 @@ const styles = StyleSheet.create({
   },
   titleText: {
     flex: 1,
-    fontSize: 16,
+    fontSize: 15,
     fontFamily: 'Urbanist',
     color: colors.textPrimary,
     paddingRight: 8,
   },
-  chevron: {
-    width: 24,
-    height: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  chevronLine: {
-    width: 2,
-    height: 14,
-    backgroundColor: colors.primary,
-    position: 'absolute',
-    transform: [{ rotate: '-45deg' }],
-  },
-  chevronHead: {
-    width: 0,
-    height: 0,
-    borderLeftWidth: 7,
-    borderTopWidth: 5,
-    borderBottomWidth: 5,
-    borderLeftColor: colors.primary,
-    borderTopColor: 'transparent',
-    borderBottomColor: 'transparent',
-    position: 'absolute',
-    right: 2,
-    top: 7,
-    transform: [{ rotate: '90deg' }],
+  chevronText: {
+    fontSize: 40,
+    fontFamily: 'Urbanist',
+    color: colors.primary,
+    marginLeft: 4,
+    height: 68,
+    textAlignVertical: 'center',
   },
 });
 

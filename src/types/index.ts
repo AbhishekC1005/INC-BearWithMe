@@ -9,10 +9,15 @@ export type JournalStackParamList = {
   JournalCompleted: undefined;
 };
 
+export type JournalsStackParamList = {
+  JournalsList: undefined;
+  JournalDetail: { id?: string } | undefined;
+};
+
 export type MainTabParamList = {
   Home: { nickname?: string } | undefined;
   Chat: undefined;
-  Journals: undefined;
+  Journals: NavigatorScreenParams<JournalsStackParamList>;
   Profile: undefined;
 };
 
@@ -73,8 +78,14 @@ export interface JournalEntry {
   id: string;
   title: string;
   content: string;
-  mood: MoodLevel;
+  mainThing: string;
+  needFromAdam: string;
+  mood: string;
+  moodEmoji: string;
   timestamp: string;
+  day: string;
+  month: string;
+  year: string;
 }
 
 export type MoodLevel = 'great' | 'good' | 'okay' | 'low' | 'bad';

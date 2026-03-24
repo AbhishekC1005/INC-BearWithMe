@@ -27,6 +27,9 @@ interface AppContextType {
   // Journal entries
   journalEntries: JournalEntry[];
   addJournalEntry: (entry: Omit<JournalEntry, 'id' | 'timestamp'>) => Promise<void>;
+  updateJournalEntry: (id: string, entry: Partial<Omit<JournalEntry, 'id' | 'timestamp'>>) => Promise<void>;
+  deleteJournalEntry: (id: string) => Promise<void>;
+  getJournalEntryById: (id: string) => JournalEntry | undefined;
 
   // Chat
   chatMessages: ChatMessage[];
@@ -141,6 +144,24 @@ export function AppProvider({ children }: { children: ReactNode }) {
     await safeSetItem(STORAGE_KEYS.JOURNAL_ENTRIES, JSON.stringify(updated));
   };
 
+  const updateJournalEntry = async (id: string, entry: Partial<Omit<JournalEntry, 'id' | 'timestamp'>>) => {
+    const updated = journalEntries.map(j => 
+      j.id === id ? { ...j, ...entry } : j
+    );
+    setJournalEntries(updated);
+    await safeSetItem(STORAGE_KEYS.JOURNAL_ENTRIES, JSON.stringify(updated));
+  };
+
+  const deleteJournalEntry = async (id: string) => {
+    const updated = journalEntries.filter(j => j.id !== id);
+    setJournalEntries(updated);
+    await safeSetItem(STORAGE_KEYS.JOURNAL_ENTRIES, JSON.stringify(updated));
+  };
+
+  const getJournalEntryById = (id: string) => {
+    return journalEntries.find(j => j.id === id);
+  };
+
   const addChatMessage = async (message: Omit<ChatMessage, 'id' | 'timestamp'>) => {
     const newMessage: ChatMessage = {
       ...message,
@@ -169,6 +190,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
         getTodayMood,
         journalEntries,
         addJournalEntry,
+        updateJournalEntry,
+        deleteJournalEntry,
+        getJournalEntryById,
         chatMessages,
         addChatMessage,
         clearChat,
