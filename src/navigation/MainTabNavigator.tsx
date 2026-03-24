@@ -18,7 +18,9 @@ const tabKeyFromRoute = (routeName: keyof MainTabParamList) => {
   return 'Therapist';
 };
 
-const routeFromTabKey = (tab: 'Home' | 'Adam' | 'Journal' | 'Therapist'): keyof MainTabParamList => {
+const routeFromTabKey = (
+  tab: 'Home' | 'Adam' | 'Journal' | 'Therapist'
+): keyof MainTabParamList => {
   if (tab === 'Home') return 'Home';
   if (tab === 'Adam') return 'Chat';
   if (tab === 'Journal') return 'Journals';
@@ -31,12 +33,20 @@ export const MainTabNavigator = () => {
       screenOptions={{
         headerShown: false,
       }}
-      tabBar={({ state, navigation }) => (
-        <BottomNav
-          active={tabKeyFromRoute(state.routeNames[state.index] as keyof MainTabParamList)}
-          onTabPress={tab => navigation.navigate(routeFromTabKey(tab))}
-        />
-      )}
+      tabBar={({ state, navigation }) => {
+        const activeRoute = state.routeNames[state.index] as keyof MainTabParamList;
+
+        if (activeRoute === 'Chat') {
+          return null;
+        }
+
+        return (
+          <BottomNav
+            active={tabKeyFromRoute(activeRoute)}
+            onTabPress={(tab) => navigation.navigate(routeFromTabKey(tab))}
+          />
+        );
+      }}
     >
       <Tab.Screen name="Home" component={HomeScreen} />
       <Tab.Screen name="Chat" component={ChatScreen} />
