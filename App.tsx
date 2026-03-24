@@ -8,6 +8,7 @@ import {
   Urbanist_600SemiBold,
   Urbanist_700Bold,
 } from '@expo-google-fonts/urbanist';
+import { AppProvider } from './src/contexts/AppContext';
 import { RootNavigator } from './src/navigation/RootNavigator';
 
 export default function App() {
@@ -27,9 +28,11 @@ export default function App() {
   }
 
   return (
-    <NavigationContainer>
-      <RootNavigator />
-    </NavigationContainer>
+    <AppProvider>
+      <NavigationContainer>
+        <RootNavigator />
+      </NavigationContainer>
+    </AppProvider>
   );
 }
 

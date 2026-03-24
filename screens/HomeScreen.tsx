@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -7,8 +7,9 @@ import {
   StatusBar,
   Image,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useApp } from '../src/contexts/AppContext';
 
 // Design tokens
 const colors = {
@@ -34,7 +35,14 @@ const moodOptions: MoodOption[] = [
 
 const HomeScreen: React.FC = () => {
   const navigation = useNavigation<any>();
+  const route = useRoute<any>();
+  const { user } = useApp();
   const [selectedMood, setSelectedMood] = useState<string>('excellent');
+  const nickname = route.params?.nickname || user?.name || 'Sudhir';
+  const profileInitial = useMemo(() => {
+    const value = nickname.trim();
+    return value ? value.charAt(0).toUpperCase() : 'U';
+  }, [nickname]);
 
   const handleNext = () => {
     navigation.navigate('Journals', { screen: 'JournalWriting' });
@@ -47,7 +55,7 @@ const HomeScreen: React.FC = () => {
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.profileIcon}>
-          <View style={styles.profileIconInner} />
+          <Text style={styles.profileInitial}>{profileInitial}</Text>
         </View>
 
         <View style={styles.notificationContainer}>
@@ -62,7 +70,7 @@ const HomeScreen: React.FC = () => {
       </View>
 
       <View style={styles.content}>
-        <Text style={styles.greetingText}>Hi Sudhir</Text>
+        <Text style={styles.greetingText}>Hi {nickname}</Text>
         <Text style={styles.encouragementText}>
           Take a deep breath. You're doing great today.
         </Text>
@@ -169,6 +177,12 @@ const styles = StyleSheet.create({
     height: 28,
     borderRadius: 14,
     backgroundColor: 'rgba(255,255,255,0.3)',
+  },
+  profileInitial: {
+    fontSize: 22,
+    fontFamily: 'Urbanist',
+    color: colors.white,
+    fontWeight: '700',
   },
   notificationContainer: {
     position: 'relative',

@@ -10,7 +10,7 @@ export type JournalStackParamList = {
 };
 
 export type MainTabParamList = {
-  Home: undefined;
+  Home: { nickname?: string } | undefined;
   Chat: undefined;
   Journals: NavigatorScreenParams<JournalStackParamList>;
   Profile: undefined;
@@ -20,21 +20,88 @@ export type RootStackParamList = {
   Login: undefined;
   SignUp: undefined;
   OnboardingStep1: undefined;
-  OnboardingStep2: undefined;
-  OnboardingStep3: undefined;
-  OnboardingComplete: undefined;
+  OnboardingStep2:
+    | {
+        nickname?: string;
+        birthday?: string;
+        gender?: string;
+        chatStyle?: string;
+      }
+    | undefined;
+  OnboardingStep3:
+    | {
+        nickname?: string;
+        birthday?: string;
+        gender?: string;
+        chatStyle?: string;
+        occupation?: string;
+        sleepTime?: string;
+        wakeUpTime?: string;
+        habit?: string;
+      }
+    | undefined;
+  OnboardingComplete:
+    | {
+        nickname?: string;
+      }
+    | undefined;
   MainTabs: NavigatorScreenParams<MainTabParamList>;
 };
 
 export type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 // Domain types
+export interface User {
+  id?: string;
+  name: string;
+  nickname?: string;
+  birthday?: string;
+  gender?: string;
+  chatStyle?: string;
+  occupation?: string;
+  sleepTime?: string;
+  wakeTime?: string;
+  workStartTime?: string;
+  workEndTime?: string;
+  stressors?: string[];
+  createdAt?: string;
+}
+
 export interface JournalEntry {
   id: string;
-  day: string;
-  month: string;
   title: string;
-  date: Date;
+  content: string;
+  mood: MoodLevel;
+  timestamp: string;
+}
+
+export type MoodLevel = 'great' | 'good' | 'okay' | 'low' | 'bad';
+
+export interface MoodEntry {
+  id: string;
+  timestamp: string;
+  level: MoodLevel;
+  intensity: number;
+  note?: string;
+  triggers: string[];
+}
+
+export type ChatRole = 'user' | 'adam';
+
+export interface ChatMessage {
+  id: string;
+  timestamp: string;
+  role: ChatRole;
+  content: string;
+}
+
+export type PatternType = 'mood' | 'stress' | 'sleep' | 'routine';
+
+export interface Pattern {
+  type: PatternType;
+  description: string;
+  detectedAt: string;
+  frequency: number;
 }
 
 export interface MoodOption {

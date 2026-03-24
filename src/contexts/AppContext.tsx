@@ -39,6 +39,32 @@ interface AppContextType {
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
+const memoryStorage: Record<string, string> = {};
+
+async function safeGetItem(key: string) {
+  try {
+    return await AsyncStorage.getItem(key);
+  } catch {
+    return memoryStorage[key] ?? null;
+  }
+}
+
+async function safeSetItem(key: string, value: string) {
+  try {
+    await AsyncStorage.setItem(key, value);
+  } catch {
+    memoryStorage[key] = value;
+  }
+}
+
+async function safeRemoveItem(key: string) {
+  try {
+    await AsyncStorage.removeItem(key);
+  } catch {
+    delete memoryStorage[key];
+  }
+}
+
 export function AppProvider({ children }: { children: ReactNode }) {
   const [user, setUserState] = useState<User | null>(null);
   const [isOnboarded, setIsOnboardedState] = useState(false);
@@ -55,11 +81,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const loadData = async () => {
     try {
       const [userData, moodData, journalData, chatData, onboardedData] = await Promise.all([
-        AsyncStorage.getItem(STORAGE_KEYS.USER),
-        AsyncStorage.getItem(STORAGE_KEYS.MOOD_ENTRIES),
-        AsyncStorage.getItem(STORAGE_KEYS.JOURNAL_ENTRIES),
-        AsyncStorage.getItem(STORAGE_KEYS.CHAT_HISTORY),
-        AsyncStorage.getItem(STORAGE_KEYS.ONBOARDED),
+        safeGetItem(STORAGE_KEYS.USER),
+        safeGetItem(STORAGE_KEYS.MOOD_ENTRIES),
+        safeGetItem(STORAGE_KEYS.JOURNAL_ENTRIES),
+        safeGetItem(STORAGE_KEYS.CHAT_HISTORY),
+        safeGetItem(STORAGE_KEYS.ONBOARDED),
       ]);
 
       if (userData) setUserState(JSON.parse(userData));
@@ -67,8 +93,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       if (journalData) setJournalEntries(JSON.parse(journalData));
       if (chatData) setChatMessages(JSON.parse(chatData));
       if (onboardedData) setIsOnboardedState(JSON.parse(onboardedData));
-    } catch (error) {
-      console.error('Error loading data:', error);
+    } catch {
+      // Ignore storage failures and continue with in-memory state.
     } finally {
       setIsLoading(false);
     }
@@ -77,15 +103,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const setUser = async (newUser: User | null) => {
     setUserState(newUser);
     if (newUser) {
-      await AsyncStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(newUser));
+      await safeSetItem(STORAGE_KEYS.USER, JSON.stringify(newUser));
     } else {
-      await AsyncStorage.removeItem(STORAGE_KEYS.USER);
+      await safeRemoveItem(STORAGE_KEYS.USER);
     }
   };
 
   const setIsOnboarded = async (value: boolean) => {
     setIsOnboardedState(value);
-    await AsyncStorage.setItem(STORAGE_KEYS.ONBOARDED, JSON.stringify(value));
+    await safeSetItem(STORAGE_KEYS.ONBOARDED, JSON.stringify(value));
   };
 
   const addMoodEntry = async (entry: Omit<MoodEntry, 'id' | 'timestamp'>) => {
@@ -96,7 +122,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     };
     const updated = [newEntry, ...moodEntries];
     setMoodEntries(updated);
-    await AsyncStorage.setItem(STORAGE_KEYS.MOOD_ENTRIES, JSON.stringify(updated));
+    await safeSetItem(STORAGE_KEYS.MOOD_ENTRIES, JSON.stringify(updated));
   };
 
   const getTodayMood = () => {
@@ -112,7 +138,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     };
     const updated = [newEntry, ...journalEntries];
     setJournalEntries(updated);
-    await AsyncStorage.setItem(STORAGE_KEYS.JOURNAL_ENTRIES, JSON.stringify(updated));
+    await safeSetItem(STORAGE_KEYS.JOURNAL_ENTRIES, JSON.stringify(updated));
   };
 
   const addChatMessage = async (message: Omit<ChatMessage, 'id' | 'timestamp'>) => {
@@ -123,12 +149,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
     };
     const updated = [...chatMessages, newMessage];
     setChatMessages(updated);
-    await AsyncStorage.setItem(STORAGE_KEYS.CHAT_HISTORY, JSON.stringify(updated));
+    await safeSetItem(STORAGE_KEYS.CHAT_HISTORY, JSON.stringify(updated));
   };
 
   const clearChat = async () => {
     setChatMessages([]);
-    await AsyncStorage.removeItem(STORAGE_KEYS.CHAT_HISTORY);
+    await safeRemoveItem(STORAGE_KEYS.CHAT_HISTORY);
   };
 
   return (

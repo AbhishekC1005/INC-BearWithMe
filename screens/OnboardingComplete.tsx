@@ -5,12 +5,21 @@ import {
   TouchableOpacity,
   StyleSheet,
   StatusBar,
+  Image,
 } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useApp } from '../src/contexts/AppContext';
 
 const OnboardingComplete: React.FC = () => {
+  const navigation = useNavigation<any>();
+  const { user } = useApp();
+
   const handleContinue = () => {
-    console.log('Navigate to app');
+    navigation.navigate('MainTabs', {
+      screen: 'Home',
+      params: { nickname: user?.name },
+    });
   };
 
   return (
@@ -33,8 +42,11 @@ const OnboardingComplete: React.FC = () => {
 
       {/* Success Content */}
       <View style={styles.content}>
-        {/* Thumbs up image placeholder */}
-        <View style={styles.thumbsUpContainer} />
+        <Image
+          source={require('../assets/bear_thumb.png')}
+          style={styles.bearImage}
+          resizeMode="contain"
+        />
 
         <Text style={styles.titleText}>You're all set!</Text>
 
@@ -95,7 +107,7 @@ const styles = StyleSheet.create({
     height: 18,
     backgroundColor: '#dd3c8c',
     top: 293,
-    left: 97,
+    left: 100,
   },
   confetti2: {
     width: 30,
@@ -103,7 +115,7 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: '#ee7c2b',
     top: 422,
-    left: 303,
+    left: 250,
   },
   confetti3: {
     width: 17,
@@ -119,14 +131,14 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: '#f2675a',
     top: 339,
-    left: 123,
+    left: 120,
   },
   confetti5: {
     width: 20,
     height: 18,
     backgroundColor: '#f2675a',
     top: 25,
-    left: 372,
+    left: 350,
   },
   confetti6: {
     width: 18,
@@ -141,15 +153,15 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: '#ffe14c',
     top: 261,
-    left: 403,
+    left: 300,
   },
   confetti8: {
     width: 9,
     height: 26,
     borderWidth: 2,
     borderColor: '#dd3c8c',
-    top: 193,
-    left: 232,
+    top: 170,
+    left: 300,
   },
   confetti9: {
     width: 46,
@@ -180,7 +192,7 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: '#ee7c2b',
     top: 958,
-    left: 303,
+    left: 300,
   },
   confetti13: {
     width: 17,
@@ -196,7 +208,7 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: '#f2675a',
     top: 875,
-    left: 123,
+    left: 120,
   },
   confetti15: {
     width: 20,
@@ -247,44 +259,45 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 16,
+    justifyContent: 'flex-start',
+    paddingHorizontal: 24,
+    paddingTop: 64,
   },
-  thumbsUpContainer: {
-    width: 280,
-    height: 180,
-    marginBottom: 42,
+  bearImage: {
+    width: 300,
+    height: 300,
+    marginBottom: 20,
   },
   titleText: {
-    fontSize: 44,
+    fontSize: 40,
     fontFamily: 'Urbanist',
     color: '#ffffff',
     fontWeight: '700',
     textAlign: 'center',
-    marginBottom: 16,
+    marginBottom: 8,
   },
   descriptionText: {
-    fontSize: 14,
+    fontSize: 13,
     fontFamily: 'Urbanist',
     color: '#ffffff',
     textAlign: 'center',
-    lineHeight: 20,
+    lineHeight: 18,
     paddingHorizontal: 16,
   },
   continueButton: {
-    height: 50,
+    height: 48,
     backgroundColor: '#ffffff',
     borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
-    marginHorizontal: 16,
-    marginBottom: 134,
+    marginHorizontal: 24,
+    marginBottom: 28,
   },
   continueButtonText: {
-    fontSize: 20,
+    fontSize: 18,
     fontFamily: 'Urbanist',
     color: '#7857e1',
-    fontWeight: '600',
+    fontWeight: 'bold',
   },
 });
 
