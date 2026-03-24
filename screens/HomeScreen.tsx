@@ -86,10 +86,11 @@ const HomeScreen: React.FC = () => {
                 you better before you chat.
               </Text>
             </View>
-            <View style={styles.notesIcon}>
-              <View style={styles.notesLine1} />
-              <View style={styles.notesLine2} />
-            </View>
+            <Image
+              source={require('../assets/Journal.png')}
+              style={styles.journalCardIcon}
+              resizeMode="contain"
+            />
           </View>
 
           <View style={styles.progressBarContainer}>
@@ -189,8 +190,19 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   notificationIcon: {
-    width: 40,
-    height: 40,
+    width: 30,
+    height: 30,
+  },
+  notificationBadge: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   bellIcon: {
     width: 24,
@@ -211,7 +223,10 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 8,
   },
-  notificationBadge: {
+  
+  
+  
+  cationBadge: {
     position: 'absolute',
     top: -4,
     right: -4,
@@ -272,6 +287,10 @@ const styles = StyleSheet.create({
     maxWidth: '84%',
   },
   notesIcon: {
+    width: 36,
+    height: 36,
+  },
+  journalCardIcon: {
     width: 36,
     height: 36,
   },

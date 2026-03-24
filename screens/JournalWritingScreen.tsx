@@ -70,10 +70,11 @@ const JournalWritingScreen: React.FC = () => {
                 you better before you chat.
               </Text>
             </View>
-            <View style={styles.notesIcon}>
-              <View style={styles.notesLine1} />
-              <View style={styles.notesLine2} />
-            </View>
+            <Image
+              source={require('../assets/Journal.png')}
+              style={styles.journalCardIcon}
+              resizeMode="contain"
+            />
           </View>
 
           <View style={styles.progressBarContainer}>
@@ -158,8 +159,8 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   notificationIcon: {
-    width: 40,
-    height: 40,
+    width: 30,
+    height: 30,
   },
   bellIcon: {
     width: 24,
@@ -239,6 +240,10 @@ const styles = StyleSheet.create({
     maxWidth: 220,
   },
   notesIcon: {
+    width: 36,
+    height: 36,
+  },
+  journalCardIcon: {
     width: 36,
     height: 36,
   },

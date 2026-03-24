@@ -73,11 +73,11 @@ const JournalCompletedScreen: React.FC = () => {
                 Well done for taking this important step. Today you shared:
               </Text>
             </View>
-            <View style={styles.checkmarkIcon}>
-              <View style={styles.checkmarkCircle} />
-              <View style={styles.checkmarkLine1} />
-              <View style={styles.checkmarkLine2} />
-            </View>
+            <Image
+              source={require('../assets/Completed.png')}
+              style={styles.checkmarkIcon}
+              resizeMode="contain"
+            />
           </View>
 
           {/* Journal Entry */}
@@ -147,8 +147,8 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   notificationIcon: {
-    width: 40,
-    height: 40,
+    width: 30,
+    height: 30,
   },
   bellIcon: {
     width: 24,
