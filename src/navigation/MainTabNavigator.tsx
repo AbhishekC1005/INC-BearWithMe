@@ -1,15 +1,31 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
 import BottomNav from '../components/BottomNav';
-import { MainTabParamList } from '../types';
+import { MainTabParamList, JournalsStackParamList } from '../types';
 
 import HomeScreen from '../../screens/HomeScreen';
 import ChatScreen from '../../screens/ChatScreen';
 import JournalsScreen from '../../screens/JournalsScreen';
+import JournalDetailScreen from '../../screens/JournalDetailScreen';
 import ProfileScreen from '../../screens/ProfileScreen';
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
+const JournalsStack = createNativeStackNavigator<JournalsStackParamList>();
+
+const JournalsStackNavigator = () => {
+  return (
+    <JournalsStack.Navigator
+      screenOptions={{
+        headerShown: false,
+      }}
+    >
+      <JournalsStack.Screen name="JournalsList" component={JournalsScreen} />
+      <JournalsStack.Screen name="JournalDetail" component={JournalDetailScreen} />
+    </JournalsStack.Navigator>
+  );
+};
 
 const tabKeyFromRoute = (routeName: keyof MainTabParamList) => {
   if (routeName === 'Home') return 'Home';
@@ -40,7 +56,7 @@ export const MainTabNavigator = () => {
     >
       <Tab.Screen name="Home" component={HomeScreen} />
       <Tab.Screen name="Chat" component={ChatScreen} />
-      <Tab.Screen name="Journals" component={JournalsScreen} />
+      <Tab.Screen name="Journals" component={JournalsStackNavigator} />
       <Tab.Screen name="Profile" component={ProfileScreen} />
     </Tab.Navigator>
   );
