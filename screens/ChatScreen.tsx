@@ -40,28 +40,56 @@ const ChatScreen: React.FC = () => {
   const [message, setMessage] = useState('');
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [hasEverSentMessage, setHasEverSentMessage] = useState(false);
-  // Hide hero whenever keyboard is open
-  const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
+  // heroMounted keeps the node in the tree so we can animate before unmounting
+  const [heroMounted, setHeroMounted] = useState(true);
+
   const scrollRef = useRef<ScrollView>(null);
-  const heroOpacity = useRef(new Animated.Value(0)).current;
+  const heroOpacity = useRef(new Animated.Value(0)).current; // entrance animation
   const heroTranslateY = useRef(new Animated.Value(14)).current;
+  // Separate value for keyboard-triggered hide / show
+  const heroVisibility = useRef(new Animated.Value(1)).current;
   const footerOpacity = useRef(new Animated.Value(0)).current;
   const footerTranslateY = useRef(new Animated.Value(10)).current;
   const hasAnimatedRef = useRef(false);
+  // Keep a ref so the keyboard listener always sees the latest value
+  const hasEverSentRef = useRef(false);
 
-  // Track keyboard open/close state
+  // Animate hero out when keyboard opens, back in when it closes
   React.useEffect(() => {
     const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
     const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
 
-    const showSub = Keyboard.addListener(showEvent, () => setIsKeyboardVisible(true));
-    const hideSub = Keyboard.addListener(hideEvent, () => setIsKeyboardVisible(false));
+    const showSub = Keyboard.addListener(showEvent, () => {
+      // Fade + slide up, then collapse layout by unmounting
+      Animated.parallel([
+        Animated.timing(heroVisibility, {
+          toValue: 0,
+          duration: 180,
+          useNativeDriver: true,
+        }),
+      ]).start(({ finished }) => {
+        if (finished) setHeroMounted(false);
+      });
+    });
+
+    const hideSub = Keyboard.addListener(hideEvent, () => {
+      // Don't restore if the user has already started chatting
+      if (hasEverSentRef.current) return;
+      // Mount first so the node exists, then fade in
+      setHeroMounted(true);
+      heroVisibility.setValue(0);
+      Animated.timing(heroVisibility, {
+        toValue: 1,
+        duration: 220,
+        useNativeDriver: true,
+      }).start();
+    });
 
     return () => {
       showSub.remove();
       hideSub.remove();
     };
-  }, []);
+  }, [heroVisibility]);
 
   useFocusEffect(
     React.useCallback(() => {
@@ -123,7 +151,17 @@ const ChatScreen: React.FC = () => {
     const trimmed = message.trim();
     if (!trimmed) return;
 
+    // Animate hero out before marking it gone permanently
+    hasEverSentRef.current = true;
     setHasEverSentMessage(true);
+
+    Animated.timing(heroVisibility, {
+      toValue: 0,
+      duration: 180,
+      useNativeDriver: true,
+    }).start(({ finished }) => {
+      if (finished) setHeroMounted(false);
+    });
 
     const userMessage: ChatMessage = {
       id: Date.now(),
@@ -148,13 +186,9 @@ const ChatScreen: React.FC = () => {
     }, 500);
   };
 
-  // Show hero only when: no message ever sent AND keyboard is closed
-  const showHero = !hasEverSentMessage && !isKeyboardVisible;
-
   const inputBottomPadding = Math.max(14, insets.bottom + 8);
 
   return (
-    // Only handle top safe area — KAV owns the bottom
     <SafeAreaView style={styles.container} edges={['top']}>
       <StatusBar barStyle="dark-content" backgroundColor={colors.background} />
 
@@ -177,12 +211,19 @@ const ChatScreen: React.FC = () => {
           </TouchableOpacity>
         </Animated.View>
 
-        {/* Hero — hidden when keyboard open OR after first message sent */}
-        {showHero && (
+        {/*
+          Hero stays mounted until the fade-out finishes (heroMounted),
+          then unmounts so the layout collapses and KAV can lift the input.
+          heroVisibility drives the smooth fade; heroOpacity is the entrance animation.
+        */}
+        {heroMounted && (
           <Animated.View
             style={[
               styles.heroSection,
-              { opacity: heroOpacity, transform: [{ translateY: heroTranslateY }] },
+              {
+                opacity: Animated.multiply(heroOpacity, heroVisibility),
+                transform: [{ translateY: heroTranslateY }],
+              },
             ]}
           >
             <Image
