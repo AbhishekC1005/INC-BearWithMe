@@ -5,6 +5,7 @@ import { RootStackParamList } from '../types';
 import { MainTabNavigator } from './MainTabNavigator';
 
 // Auth Screens
+import SplashScreen from '../../screens/SplashScreen';
 import LoginScreen from '../../screens/LoginScreen';
 import SignUpScreen from '../../screens/SignUpScreen';
 
@@ -22,11 +23,13 @@ export const RootNavigator = () => {
       screenOptions={{
         headerShown: false,
         contentStyle: {
-          paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight ?? 0 : 0,
+          paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) : 0,
         },
       }}
-      initialRouteName="Login"
+      initialRouteName="Splash"
     >
+      <Stack.Screen name="Splash" component={SplashScreen} />
+
       {/* Auth Flow */}
       <Stack.Screen name="Login" component={LoginScreen} />
       <Stack.Screen name="SignUp" component={SignUpScreen} />
