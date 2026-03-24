@@ -1,5 +1,6 @@
 import React, { useMemo, useRef, useState } from 'react';
 import {
+  Animated,
   View,
   Text,
   TouchableOpacity,
@@ -7,20 +8,24 @@ import {
   StatusBar,
   TextInput,
   KeyboardAvoidingView,
+  Keyboard,
   Platform,
   ScrollView,
+  Image,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import type { MainTabParamList } from '../src/types';
 
-// Design tokens from Figma
 const colors = {
   primary: '#7857e1',
   background: '#f3eded',
   white: '#ffffff',
-  textPrimary: '#7857e1',
-  textSecondary: '#7857e1',
-  inputBackground: 'rgba(120, 87, 225, 0.12)',
+  inputBackground: '#7857e126',
   inputBorder: '#7857e1',
+  placeholder: '#b7a8ea',
 };
 
 type ChatMessage = {
@@ -30,9 +35,107 @@ type ChatMessage = {
 };
 
 const ChatScreen: React.FC = () => {
+  const navigation = useNavigation<BottomTabNavigationProp<MainTabParamList, 'Chat'>>();
+  const insets = useSafeAreaInsets();
   const [message, setMessage] = useState('');
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [hasEverSentMessage, setHasEverSentMessage] = useState(false);
+  // heroMounted keeps the node in the tree so we can animate before unmounting
+  const [heroMounted, setHeroMounted] = useState(true);
+
   const scrollRef = useRef<ScrollView>(null);
+  const heroOpacity = useRef(new Animated.Value(0)).current; // entrance animation
+  const heroTranslateY = useRef(new Animated.Value(14)).current;
+  // Separate value for keyboard-triggered hide / show
+  const heroVisibility = useRef(new Animated.Value(1)).current;
+  const footerOpacity = useRef(new Animated.Value(0)).current;
+  const footerTranslateY = useRef(new Animated.Value(10)).current;
+  const hasAnimatedRef = useRef(false);
+  // Keep a ref so the keyboard listener always sees the latest value
+  const hasEverSentRef = useRef(false);
+
+  // Animate hero out when keyboard opens, back in when it closes
+  React.useEffect(() => {
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+
+    const showSub = Keyboard.addListener(showEvent, () => {
+      // Fade + slide up, then collapse layout by unmounting
+      Animated.parallel([
+        Animated.timing(heroVisibility, {
+          toValue: 0,
+          duration: 180,
+          useNativeDriver: true,
+        }),
+      ]).start(({ finished }) => {
+        if (finished) setHeroMounted(false);
+      });
+    });
+
+    const hideSub = Keyboard.addListener(hideEvent, () => {
+      // Don't restore if the user has already started chatting
+      if (hasEverSentRef.current) return;
+      // Mount first so the node exists, then fade in
+      setHeroMounted(true);
+      heroVisibility.setValue(0);
+      Animated.timing(heroVisibility, {
+        toValue: 1,
+        duration: 220,
+        useNativeDriver: true,
+      }).start();
+    });
+
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, [heroVisibility]);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      if (!hasAnimatedRef.current) {
+        heroOpacity.setValue(0);
+        heroTranslateY.setValue(14);
+        footerOpacity.setValue(0);
+        footerTranslateY.setValue(10);
+      }
+
+      const entranceAnimation = Animated.parallel([
+        Animated.timing(heroOpacity, {
+          toValue: 1,
+          duration: 360,
+          useNativeDriver: true,
+        }),
+        Animated.timing(heroTranslateY, {
+          toValue: 0,
+          duration: 360,
+          useNativeDriver: true,
+        }),
+        Animated.sequence([
+          Animated.delay(100),
+          Animated.parallel([
+            Animated.timing(footerOpacity, {
+              toValue: 1,
+              duration: 280,
+              useNativeDriver: true,
+            }),
+            Animated.timing(footerTranslateY, {
+              toValue: 0,
+              duration: 280,
+              useNativeDriver: true,
+            }),
+          ]),
+        ]),
+      ]);
+
+      entranceAnimation.start();
+      hasAnimatedRef.current = true;
+
+      return () => {
+        entranceAnimation.stop();
+      };
+    }, [footerOpacity, footerTranslateY, heroOpacity, heroTranslateY])
+  );
 
   const dummyReplies = useMemo(
     () => [
@@ -48,18 +151,30 @@ const ChatScreen: React.FC = () => {
     const trimmed = message.trim();
     if (!trimmed) return;
 
+    // Animate hero out before marking it gone permanently
+    hasEverSentRef.current = true;
+    setHasEverSentMessage(true);
+
+    Animated.timing(heroVisibility, {
+      toValue: 0,
+      duration: 180,
+      useNativeDriver: true,
+    }).start(({ finished }) => {
+      if (finished) setHeroMounted(false);
+    });
+
     const userMessage: ChatMessage = {
       id: Date.now(),
       text: trimmed,
       sender: 'user',
     };
 
-    setMessages(prev => [...prev, userMessage]);
+    setMessages((prev) => [...prev, userMessage]);
     setMessage('');
 
     const replyText = dummyReplies[Math.floor(Math.random() * dummyReplies.length)];
     setTimeout(() => {
-      setMessages(prev => [
+      setMessages((prev) => [
         ...prev,
         {
           id: Date.now() + 1,
@@ -71,106 +186,116 @@ const ChatScreen: React.FC = () => {
     }, 500);
   };
 
+  const inputBottomPadding = Math.max(14, insets.bottom + 8);
+
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <StatusBar barStyle="dark-content" backgroundColor={colors.background} />
 
-      <KeyboardAvoidingView
-        style={styles.body}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      >
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.menuButton}>
-          <View style={styles.menuIcon}>
-            <View style={styles.menuLine} />
-            <View style={styles.menuLine} />
-            <View style={styles.menuLine} />
-          </View>
-        </TouchableOpacity>
-
-        <Text style={styles.title}>Adam (AI)</Text>
-
-        <View style={styles.placeholder} />
-      </View>
-
-      {/* Chat Content */}
-      <View style={styles.content}>
-        {/* Image Placeholder */}
-        <View style={styles.imageContainer}>
-          <View style={styles.imagePlaceholder} />
-        </View>
-
-        {/* Ready Message */}
-        <Text style={styles.readyText}>Adam is ready to chat.</Text>
-
-        {/* Subtitle */}
-        <Text style={styles.subtitle}>
-          I've read through your reflection. Whenever you're ready, let's talk
-          through it together.
-        </Text>
-
-        <ScrollView
-          ref={scrollRef}
-          style={styles.messagesScroll}
-          contentContainerStyle={styles.messagesContent}
-          showsVerticalScrollIndicator={false}
-          scrollEnabled
-          onContentSizeChange={() => scrollRef.current?.scrollToEnd({ animated: true })}
+      <KeyboardAvoidingView style={styles.body} behavior="padding" keyboardVerticalOffset={0}>
+        {/* Header */}
+        <Animated.View
+          style={[
+            styles.header,
+            { opacity: heroOpacity, transform: [{ translateY: heroTranslateY }] },
+          ]}
         >
-          {messages.map(item => (
-            <View
-              key={item.id}
-              style={[
-                styles.messageBubble,
-                item.sender === 'user' ? styles.userBubble : styles.botBubble,
-              ]}
-            >
-              <Text
+          <TouchableOpacity style={styles.iconButton}>
+            <Ionicons name="menu-outline" size={22} color={colors.primary} />
+          </TouchableOpacity>
+
+          <Text style={styles.title}>Adam(AI)</Text>
+
+          <TouchableOpacity style={styles.iconButton} onPress={() => navigation.navigate('Home')}>
+            <Ionicons name="close" size={26} color={colors.primary} />
+          </TouchableOpacity>
+        </Animated.View>
+
+        {/*
+          Hero stays mounted until the fade-out finishes (heroMounted),
+          then unmounts so the layout collapses and KAV can lift the input.
+          heroVisibility drives the smooth fade; heroOpacity is the entrance animation.
+        */}
+        {heroMounted && (
+          <Animated.View
+            style={[
+              styles.heroSection,
+              {
+                opacity: Animated.multiply(heroOpacity, heroVisibility),
+                transform: [{ translateY: heroTranslateY }],
+              },
+            ]}
+          >
+            <Image
+              source={require('../assets/bear_sitting.png')}
+              style={styles.heroImage}
+              resizeMode="contain"
+            />
+            <Text style={styles.readyText}>Adam is ready to chat.</Text>
+            <Text style={styles.subtitle}>
+              I've read through your reflection. Whenever you're ready, let's talk through it
+              together.
+            </Text>
+          </Animated.View>
+        )}
+
+        {/* Messages */}
+        <View style={styles.messagesArea}>
+          <ScrollView
+            ref={scrollRef}
+            style={styles.messagesScroll}
+            contentContainerStyle={styles.messagesContent}
+            showsVerticalScrollIndicator={false}
+            onContentSizeChange={() => scrollRef.current?.scrollToEnd({ animated: true })}
+          >
+            {messages.map((item) => (
+              <View
+                key={item.id}
                 style={[
-                  styles.messageText,
-                  item.sender === 'user' ? styles.userMessageText : styles.botMessageText,
+                  styles.messageBubble,
+                  item.sender === 'user' ? styles.userBubble : styles.botBubble,
                 ]}
               >
-                {item.text}
-              </Text>
-            </View>
-          ))}
-        </ScrollView>
-      </View>
-
-      {/* Input Area */}
-      <View style={styles.inputContainer}>
-        <View style={styles.inputWrapper}>
-          <TextInput
-            style={styles.input}
-            placeholder="Start Conversation"
-            placeholderTextColor="rgba(120, 87, 225, 0.4)"
-            value={message}
-            onChangeText={setMessage}
-          />
-
-          {/* Mic Icon */}
-          <View style={styles.micContainer}>
-            <View style={styles.micHead} />
-            <View style={styles.micStand} />
-            <View style={styles.micBase} />
-          </View>
+                <Text
+                  style={[
+                    styles.messageText,
+                    item.sender === 'user' ? styles.userMessageText : styles.botMessageText,
+                  ]}
+                >
+                  {item.text}
+                </Text>
+              </View>
+            ))}
+          </ScrollView>
         </View>
 
-        {/* Send Button */}
-        <TouchableOpacity
-          style={styles.sendButton}
-          onPress={handleSend}
-          disabled={!message.trim()}
+        {/* Input Area */}
+        <Animated.View
+          style={[
+            styles.inputContainer,
+            { paddingBottom: inputBottomPadding },
+            { opacity: footerOpacity, transform: [{ translateY: footerTranslateY }] },
+          ]}
         >
-          <View style={styles.arrowIcon}>
-            <View style={styles.arrowLine} />
-            <View style={styles.arrowHead} />
+          <View style={styles.inputWrapper}>
+            <TextInput
+              style={styles.input}
+              placeholder="Start Conversation"
+              placeholderTextColor={colors.placeholder}
+              value={message}
+              onChangeText={setMessage}
+            />
+            <Ionicons name="mic-outline" size={20} color={colors.primary} />
           </View>
-        </TouchableOpacity>
-      </View>
 
+          <TouchableOpacity
+            style={[styles.sendButton, !message.trim() && styles.sendButtonIdle]}
+            onPress={handleSend}
+            disabled={!message.trim()}
+          >
+            <Ionicons name="arrow-up" size={22} color={colors.white} />
+          </TouchableOpacity>
+        </Animated.View>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -188,83 +313,71 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingTop: 8,
-    paddingBottom: 10,
+    paddingHorizontal: 18,
+    paddingTop: 12,
+    paddingBottom: 8,
   },
-  menuButton: {
-    width: 24,
-    height: 24,
+  iconButton: {
+    width: 32,
+    height: 32,
+    alignItems: 'center',
     justifyContent: 'center',
   },
-  menuIcon: {
-    width: 14,
-    height: 10,
-    justifyContent: 'space-between',
-  },
-  menuLine: {
-    width: 14,
-    height: 2,
-    backgroundColor: colors.primary,
-    borderRadius: 1,
-  },
   title: {
-    fontSize: 26,
-    fontFamily: 'Urbanist',
+    fontSize: 28,
+    fontFamily: 'Urbanist-SemiBold',
     color: colors.primary,
-    fontWeight: '600',
+    fontWeight: '100',
+    letterSpacing: -0.7,
+    marginTop: -1,
   },
-  placeholder: {
-    width: 24,
-  },
-  content: {
-    flex: 1,
+  heroSection: {
     alignItems: 'center',
-    paddingTop: 6,
-    paddingHorizontal: 16,
+    marginTop: 60,
+    paddingHorizontal: 20,
   },
-  imageContainer: {
-    width: '100%',
-    maxWidth: 340,
-    height: 260,
-    marginBottom: 10,
-  },
-  imagePlaceholder: {
-    width: '100%',
-    height: '100%',
-    backgroundColor: 'rgba(120, 87, 225, 0.1)',
-    borderRadius: 20,
+  heroImage: {
+    width: 320,
+    height: 320,
+    marginBottom: -10,
   },
   readyText: {
-    fontSize: 28,
-    fontFamily: 'Urbanist',
+    fontSize: 32,
+    fontFamily: 'Urbanist-Medium',
     color: colors.primary,
-    fontWeight: '700',
+    fontWeight: '600',
     textAlign: 'center',
     width: '100%',
-    paddingHorizontal: 8,
-    marginBottom: 4,
+    marginBottom: 5,
+    letterSpacing: -0.7,
   },
   subtitle: {
     fontSize: 12,
-    fontFamily: 'Urbanist',
+    fontFamily: 'Urbanist-Medium',
+    fontWeight: '600',
     color: colors.primary,
     textAlign: 'center',
-    paddingHorizontal: 24,
-    lineHeight: 18,
-    marginBottom: 6,
+    lineHeight: 12,
+    maxWidth: 335,
+    marginLeft: 30,
+    marginRight: 30,
+  },
+  messagesArea: {
+    flex: 1,
+    width: '100%',
+    paddingHorizontal: 16,
+    paddingTop: 10,
   },
   messagesScroll: {
     width: '100%',
-    flex: 1,
   },
   messagesContent: {
-    paddingVertical: 4,
+    paddingVertical: 6,
     gap: 8,
   },
   messageBubble: {
     maxWidth: '85%',
-    borderRadius: 18,
+    borderRadius: 16,
     paddingHorizontal: 14,
     paddingVertical: 10,
   },
@@ -293,90 +406,39 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingTop: 8,
-    paddingBottom: 10,
-    gap: 16,
+    paddingTop: 6,
+    gap: 5,
   },
   inputWrapper: {
     flex: 1,
-    height: 48,
+    height: 44,
     backgroundColor: colors.inputBackground,
-    borderRadius: 49,
+    borderRadius: 22,
     borderWidth: 1,
     borderColor: colors.inputBorder,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 20,
+    paddingHorizontal: 18,
   },
   input: {
     flex: 1,
     fontSize: 16,
     fontFamily: 'Urbanist',
     color: colors.primary,
-  },
-  micContainer: {
-    width: 27,
-    height: 27,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  micHead: {
-    width: 12,
-    height: 14,
-    borderRadius: 6,
-    borderWidth: 2,
-    borderColor: colors.primary,
-  },
-  micStand: {
-    width: 2,
-    height: 5,
-    backgroundColor: colors.primary,
-    marginTop: 2,
-  },
-  micBase: {
-    width: 6,
-    height: 2,
-    backgroundColor: colors.primary,
-    marginTop: 2,
+    paddingVertical: 0,
   },
   sendButton: {
-    width: 48,
-    height: 48,
-    borderRadius: 49,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: colors.primary,
     borderWidth: 1,
     borderColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  arrowIcon: {
-    width: 16,
-    height: 18,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  arrowLine: {
-    width: 2,
-    height: 16,
-    backgroundColor: colors.white,
-    transform: [{ rotate: '-45deg' }],
-    position: 'absolute',
-    left: 2,
-    top: 1,
-  },
-  arrowHead: {
-    width: 0,
-    height: 0,
-    borderLeftWidth: 8,
-    borderTopWidth: 6,
-    borderBottomWidth: 6,
-    borderLeftColor: colors.white,
-    borderTopColor: 'transparent',
-    borderBottomColor: 'transparent',
-    position: 'absolute',
-    right: 0,
-    top: 3,
-    transform: [{ rotate: '90deg' }],
+  sendButtonIdle: {
+    opacity: 1,
   },
 });
 
