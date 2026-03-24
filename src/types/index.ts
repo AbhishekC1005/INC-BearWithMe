@@ -12,7 +12,7 @@ export type JournalStackParamList = {
 export type MainTabParamList = {
   Home: { nickname?: string } | undefined;
   Chat: undefined;
-  Journals: NavigatorScreenParams<JournalStackParamList>;
+  Journals: undefined;
   Profile: undefined;
 };
 

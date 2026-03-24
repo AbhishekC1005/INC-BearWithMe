@@ -6,6 +6,7 @@ import {
   StyleSheet,
   StatusBar,
   Image,
+  TextInput,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -38,14 +39,24 @@ const HomeScreen: React.FC = () => {
   const route = useRoute<any>();
   const { user } = useApp();
   const [selectedMood, setSelectedMood] = useState<string>('excellent');
+  const [journalStep, setJournalStep] = useState<number>(1);
+  const [mainThingText, setMainThingText] = useState<string>('');
+  const [needFromAdamText, setNeedFromAdamText] = useState<string>('');
   const nickname = route.params?.nickname || user?.name || 'Sudhir';
+  const totalSteps = 3;
+  const progressPercent: `${number}%` = `${(journalStep / totalSteps) * 100}%`;
   const profileInitial = useMemo(() => {
     const value = nickname.trim();
     return value ? value.charAt(0).toUpperCase() : 'U';
   }, [nickname]);
 
   const handleNext = () => {
-    navigation.navigate('Journals', { screen: 'JournalWriting' });
+    if (journalStep < totalSteps) {
+      setJournalStep(prev => prev + 1);
+      return;
+    }
+
+    navigation.navigate('Journals');
   };
 
   return (
@@ -94,36 +105,81 @@ const HomeScreen: React.FC = () => {
           </View>
 
           <View style={styles.progressBarContainer}>
-            <View style={styles.progressBarFill} />
+            <View style={[styles.progressBarFill, { width: progressPercent }]} />
           </View>
 
-          <Text style={styles.moodQuestion}>How are you feeling today?</Text>
+          {journalStep === 1 && (
+            <>
+              <Text style={styles.moodQuestion}>How are you feeling today?</Text>
 
-          <View style={styles.moodContainer}>
-            {moodOptions.map(option => (
-              <TouchableOpacity
-                key={option.id}
-                style={[
-                  styles.moodOption,
-                  selectedMood === option.id && styles.moodOptionSelected,
-                ]}
-                onPress={() => setSelectedMood(option.id)}
-              >
-                <Text style={styles.moodEmoji}>{option.emoji}</Text>
-                <Text
-                  style={[
-                    styles.moodLabel,
-                    selectedMood === option.id && styles.moodLabelSelected,
-                  ]}
-                >
-                  {option.label}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
+              <View style={styles.moodContainer}>
+                {moodOptions.map(option => (
+                  <TouchableOpacity
+                    key={option.id}
+                    style={[
+                      styles.moodOption,
+                      selectedMood === option.id && styles.moodOptionSelected,
+                    ]}
+                    onPress={() => setSelectedMood(option.id)}
+                  >
+                    <Text style={styles.moodEmoji}>{option.emoji}</Text>
+                    <Text
+                      style={[
+                        styles.moodLabel,
+                        selectedMood === option.id && styles.moodLabelSelected,
+                      ]}
+                    >
+                      {option.label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </>
+          )}
+
+          {journalStep === 2 && (
+            <>
+              <Text style={styles.journalQuestionText}>
+                What's the main thing that happened today? (Even if it's just
+                something small).
+              </Text>
+              <View style={styles.textInputContainer}>
+                <TextInput
+                  style={styles.textInput}
+                  placeholder="e.g. I had a long day at college..."
+                  placeholderTextColor="#7857e166"
+                  value={mainThingText}
+                  onChangeText={setMainThingText}
+                  multiline
+                  textAlignVertical="top"
+                />
+              </View>
+            </>
+          )}
+
+          {journalStep === 3 && (
+            <>
+              <Text style={styles.journalQuestionText}>
+                What do you need most from Adam right now?
+              </Text>
+              <View style={styles.textInputContainer}>
+                <TextInput
+                  style={styles.textInput}
+                  placeholder="e.g. Just listen to me...."
+                  placeholderTextColor="#7857e166"
+                  value={needFromAdamText}
+                  onChangeText={setNeedFromAdamText}
+                  multiline
+                  textAlignVertical="top"
+                />
+              </View>
+            </>
+          )}
 
           <TouchableOpacity style={styles.nextButton} onPress={handleNext}>
-            <Text style={styles.nextButtonText}>Next</Text>
+            <Text style={styles.nextButtonText}>
+              {journalStep === totalSteps ? 'Finish' : 'Next'}
+            </Text>
           </TouchableOpacity>
         </View>
 
@@ -324,6 +380,28 @@ const styles = StyleSheet.create({
     height: 6,
     backgroundColor: colors.primary,
     borderRadius: 10,
+  },
+  journalQuestionText: {
+    fontSize: 16,
+    fontFamily: 'Urbanist',
+    color: colors.textPrimary,
+    marginBottom: 10,
+    lineHeight: 20,
+  },
+  textInputContainer: {
+    height: 120,
+    backgroundColor: 'rgba(120, 87, 225, 0.12)',
+    borderWidth: 1,
+    borderColor: colors.primary,
+    borderRadius: 10,
+    padding: 14,
+    marginBottom: 10,
+  },
+  textInput: {
+    fontSize: 14,
+    fontFamily: 'Urbanist',
+    color: colors.textPrimary,
+    flex: 1,
   },
   moodQuestion: {
     fontSize: 15,
