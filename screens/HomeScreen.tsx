@@ -59,10 +59,11 @@ const HomeScreen: React.FC = () => {
         </View>
 
         <View style={styles.notificationContainer}>
-          <View style={styles.bellIcon}>
-            <View style={styles.bellBody} />
-            <View style={styles.bellClapper} />
-          </View>
+          <Image
+            source={require('../assets/Notification.png')}
+            style={styles.notificationIcon}
+            resizeMode="contain"
+          />
           <View style={styles.notificationBadge}>
             <Text style={styles.notificationText}>1</Text>
           </View>
@@ -139,7 +140,7 @@ const HomeScreen: React.FC = () => {
           </View>
           <View style={styles.adamImagePlaceholder}>
             <Image
-              source={require('../assets/icon.png')}
+              source={require('../assets/Unlock_chat.png')}
               style={styles.bearImage}
               resizeMode="contain"
             />
@@ -186,6 +187,10 @@ const styles = StyleSheet.create({
   },
   notificationContainer: {
     position: 'relative',
+  },
+  notificationIcon: {
+    width: 40,
+    height: 40,
   },
   bellIcon: {
     width: 24,
@@ -394,8 +399,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   bearImage: {
-    width: 96,
-    height: 116,
+    width: 77.37,
+    height: 154.75,
+    marginLeft: 50,
   },
 });
 

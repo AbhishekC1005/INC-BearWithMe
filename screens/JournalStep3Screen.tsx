@@ -7,6 +7,7 @@ import {
   StyleSheet,
   StatusBar,
   ScrollView,
+  Image,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -38,10 +39,11 @@ const JournalStep3Screen: React.FC = () => {
         </View>
 
         <View style={styles.notificationContainer}>
-          <View style={styles.bellIcon}>
-            <View style={styles.bellBody} />
-            <View style={styles.bellClapper} />
-          </View>
+          <Image
+            source={require('../assets/Notification.png')}
+            style={styles.notificationIcon}
+            resizeMode="contain"
+          />
           <View style={styles.notificationBadge}>
             <Text style={styles.notificationText}>1</Text>
           </View>
@@ -111,7 +113,13 @@ const JournalStep3Screen: React.FC = () => {
               waiting to hear how your day went!
             </Text>
           </View>
-          <View style={styles.adamImagePlaceholder} />
+          <View style={styles.adamImagePlaceholder}>
+            <Image
+              source={require('../assets/Unlock_chat.png')}
+              style={styles.bearImage}
+              resizeMode="contain"
+            />
+          </View>
         </View>
       </ScrollView>
 
@@ -147,6 +155,10 @@ const styles = StyleSheet.create({
   },
   notificationContainer: {
     position: 'relative',
+  },
+  notificationIcon: {
+    width: 40,
+    height: 40,
   },
   bellIcon: {
     width: 24,
@@ -331,10 +343,15 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   adamImagePlaceholder: {
-    width: 184,
-    height: 185,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    borderRadius: 0,
+    width: 104,
+    height: 120,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  bearImage: {
+    width: 77.37,
+    height: 154.75,
+    marginLeft: 50,
   },
 });
 
