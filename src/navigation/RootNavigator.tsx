@@ -6,7 +6,7 @@ import { MainTabNavigator } from './MainTabNavigator';
 
 // Auth Screens
 import LoginScreen from '../../screens/LoginScreen';
-import SignUpScreen from '../../SignUpScreen';
+import SignUpScreen from '../../screens/SignUpScreen';
 
 // Onboarding Screens
 import OnboardingStep1 from '../../screens/OnboardingStep1';

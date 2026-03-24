@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -8,17 +8,30 @@ import {
   StatusBar,
   Image,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
 
-const LoginScreen: React.FC = () => {
+const SignUpScreen: React.FC = () => {
+  const [email, setEmail] = useState('');
   const navigation = useNavigation<any>();
+
+  const handleContinue = () => {
+    navigation.navigate('OnboardingStep1');
+  };
+
+  const handleGoogleSignIn = () => {
+    navigation.navigate('OnboardingStep1');
+  };
+
+  const handleLogin = () => {
+    navigation.navigate('Login');
+  };
 
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#f3eded" />
+
       <View style={styles.content}>
-        {/* Logo Section */}
         <View style={styles.logoContainer}>
           <Text style={styles.logoText}>BearWithMe</Text>
           <Text style={styles.taglineText}>Your Wiser Companion</Text>
@@ -31,40 +44,31 @@ const LoginScreen: React.FC = () => {
         />
 
         <View style={styles.formGroup}>
-          {/* Login Title */}
-          <Text style={styles.loginTitle}>Login</Text>
+          <Text style={styles.title}>Sign Up</Text>
 
-          {/* Email Input */}
           <View style={styles.inputContainer}>
             <TextInput
               style={styles.input}
               placeholder="Enter your email"
-              placeholderTextColor="#7857e166"
+              placeholderTextColor="#b4a8d6"
+              value={email}
+              onChangeText={setEmail}
               keyboardType="email-address"
               autoCapitalize="none"
             />
           </View>
 
-          {/* Continue Button */}
-          <TouchableOpacity
-            style={styles.continueButton}
-            onPress={() => navigation.navigate('MainTabs', { screen: 'Home' })}
-          >
+          <TouchableOpacity style={styles.continueButton} onPress={handleContinue}>
             <Text style={styles.continueButtonText}>Continue</Text>
           </TouchableOpacity>
 
-          {/* Divider */}
           <View style={styles.dividerContainer}>
             <View style={styles.dividerLine} />
             <Text style={styles.dividerText}>or</Text>
             <View style={styles.dividerLine} />
           </View>
 
-          {/* Google Login Button */}
-          <TouchableOpacity
-            style={styles.googleButton}
-            onPress={() => navigation.navigate('MainTabs', { screen: 'Home' })}
-          >
+          <TouchableOpacity style={styles.googleButton} onPress={handleGoogleSignIn}>
             <Image
               source={require('../assets/google_icon.png')}
               style={styles.googleIcon}
@@ -73,13 +77,10 @@ const LoginScreen: React.FC = () => {
             <Text style={styles.googleButtonText}>Continue with Google</Text>
           </TouchableOpacity>
 
-          {/* Sign Up Link */}
-          <TouchableOpacity onPress={() => navigation.navigate('SignUp')}>
-            <Text style={styles.signupText}>
-              Don't have an account? <Text style={{ textDecorationLine: 'underline', fontWeight: 'bold',}}>
-               Sign up
-            </Text>
-            </Text>
+          <TouchableOpacity onPress={handleLogin}>
+            <Text style={styles.loginLink}>Have an account? <Text style={{ textDecorationLine: 'underline', fontWeight: 'bold', }}>
+          Login
+          </Text></Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -125,7 +126,7 @@ const styles = StyleSheet.create({
     color: '#7857e1',
     marginTop: 6,
   },
-  loginTitle: {
+  title: {
     fontWeight:'bold',
     fontSize: 22,
     fontFamily: 'Urbanist',
@@ -134,11 +135,11 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   inputContainer: {
+    height: 44,
     backgroundColor: '#ede6fb',
     borderRadius: 12,
     borderWidth: 1,
     borderColor: '#7857e1',
-    height: 44,
     justifyContent: 'center',
     paddingHorizontal: 14,
     marginBottom: 10,
@@ -150,11 +151,11 @@ const styles = StyleSheet.create({
     padding: 0,
   },
   continueButton: {
+    height: 46,
     backgroundColor: '#7857e1',
     borderRadius: 12,
-    height: 46,
-    alignItems: 'center',
     justifyContent: 'center',
+    alignItems: 'center',
     marginTop: 4,
   },
   continueButtonText: {
@@ -186,11 +187,10 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 1,
     borderColor: '#7857e1',
-    paddingVertical: 0,
-    paddingHorizontal: 18,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    paddingHorizontal: 18,
   },
   googleIcon: {
     width: 18,
@@ -202,7 +202,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Urbanist',
     color: '#7857e1',
   },
-  signupText: {
+  loginLink: {
     fontSize: 12,
     fontFamily: 'Urbanist',
     color: '#7857e1',
@@ -211,4 +211,5 @@ const styles = StyleSheet.create({
   },
 });
 
-export default LoginScreen;
+export default SignUpScreen;
+  
