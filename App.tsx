@@ -1,6 +1,6 @@
 import React from 'react';
 import { ActivityIndicator, View, StyleSheet } from 'react-native';
-import { NavigationContainer } from '@react-navigation/native';
+import { DefaultTheme, NavigationContainer } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
 import {
   Urbanist_400Regular,
@@ -9,7 +9,17 @@ import {
   Urbanist_700Bold,
 } from '@expo-google-fonts/urbanist';
 import { AppProvider } from './src/contexts/AppContext';
+import { colors } from './src/constants/theme';
 import { RootNavigator } from './src/navigation/RootNavigator';
+
+const appNavigationTheme = {
+  ...DefaultTheme,
+  colors: {
+    ...DefaultTheme.colors,
+    background: colors.background,
+    card: colors.background,
+  },
+};
 
 export default function App() {
   const [fontsLoaded] = useFonts({
@@ -29,7 +39,7 @@ export default function App() {
 
   return (
     <AppProvider>
-      <NavigationContainer>
+      <NavigationContainer theme={appNavigationTheme}>
         <RootNavigator />
       </NavigationContainer>
     </AppProvider>
@@ -41,6 +51,6 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#f3eded',
+    backgroundColor: colors.background,
   },
 });

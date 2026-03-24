@@ -1,7 +1,7 @@
 import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { Platform, StatusBar } from 'react-native';
 import { RootStackParamList } from '../types';
+import { colors } from '../constants/theme';
 import { MainTabNavigator } from './MainTabNavigator';
 
 // Auth Screens
@@ -23,7 +23,7 @@ export const RootNavigator = () => {
       screenOptions={{
         headerShown: false,
         contentStyle: {
-          paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) : 0,
+          backgroundColor: colors.background,
         },
       }}
       initialRouteName="Splash"
