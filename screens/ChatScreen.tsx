@@ -8,6 +8,7 @@ import {
   StatusBar,
   TextInput,
   KeyboardAvoidingView,
+  Keyboard,
   Platform,
   ScrollView,
   Image,
@@ -18,7 +19,6 @@ import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { MainTabParamList } from '../src/types';
 
-// Design tokens from Figma
 const colors = {
   primary: '#7857e1',
   background: '#f3eded',
@@ -39,12 +39,29 @@ const ChatScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
   const [message, setMessage] = useState('');
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [hasEverSentMessage, setHasEverSentMessage] = useState(false);
+  // Hide hero whenever keyboard is open
+  const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
   const heroOpacity = useRef(new Animated.Value(0)).current;
   const heroTranslateY = useRef(new Animated.Value(14)).current;
   const footerOpacity = useRef(new Animated.Value(0)).current;
   const footerTranslateY = useRef(new Animated.Value(10)).current;
   const hasAnimatedRef = useRef(false);
+
+  // Track keyboard open/close state
+  React.useEffect(() => {
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+
+    const showSub = Keyboard.addListener(showEvent, () => setIsKeyboardVisible(true));
+    const hideSub = Keyboard.addListener(hideEvent, () => setIsKeyboardVisible(false));
+
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
 
   useFocusEffect(
     React.useCallback(() => {
@@ -106,6 +123,8 @@ const ChatScreen: React.FC = () => {
     const trimmed = message.trim();
     if (!trimmed) return;
 
+    setHasEverSentMessage(true);
+
     const userMessage: ChatMessage = {
       id: Date.now(),
       text: trimmed,
@@ -129,14 +148,17 @@ const ChatScreen: React.FC = () => {
     }, 500);
   };
 
+  // Show hero only when: no message ever sent AND keyboard is closed
+  const showHero = !hasEverSentMessage && !isKeyboardVisible;
+
+  const inputBottomPadding = Math.max(14, insets.bottom + 8);
+
   return (
-    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+    // Only handle top safe area — KAV owns the bottom
+    <SafeAreaView style={styles.container} edges={['top']}>
       <StatusBar barStyle="dark-content" backgroundColor={colors.background} />
 
-      <KeyboardAvoidingView
-        style={styles.body}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      >
+      <KeyboardAvoidingView style={styles.body} behavior="padding" keyboardVerticalOffset={0}>
         {/* Header */}
         <Animated.View
           style={[
@@ -155,26 +177,26 @@ const ChatScreen: React.FC = () => {
           </TouchableOpacity>
         </Animated.View>
 
-        {/* Hero */}
-        <Animated.View
-          style={[
-            styles.heroSection,
-            { opacity: heroOpacity, transform: [{ translateY: heroTranslateY }] },
-          ]}
-        >
-          <Image
-            source={require('../assets/bear_sitting.png')}
-            style={styles.heroImage}
-            resizeMode="contain"
-          />
-
-          <Text style={styles.readyText}>Adam is ready to chat.</Text>
-
-          <Text style={styles.subtitle}>
-            I've read through your reflection. Whenever you're ready, let's talk through it
-            together.
-          </Text>
-        </Animated.View>
+        {/* Hero — hidden when keyboard open OR after first message sent */}
+        {showHero && (
+          <Animated.View
+            style={[
+              styles.heroSection,
+              { opacity: heroOpacity, transform: [{ translateY: heroTranslateY }] },
+            ]}
+          >
+            <Image
+              source={require('../assets/bear_sitting.png')}
+              style={styles.heroImage}
+              resizeMode="contain"
+            />
+            <Text style={styles.readyText}>Adam is ready to chat.</Text>
+            <Text style={styles.subtitle}>
+              I've read through your reflection. Whenever you're ready, let's talk through it
+              together.
+            </Text>
+          </Animated.View>
+        )}
 
         {/* Messages */}
         <View style={styles.messagesArea}>
@@ -210,7 +232,7 @@ const ChatScreen: React.FC = () => {
         <Animated.View
           style={[
             styles.inputContainer,
-            { paddingBottom: Math.max(36, insets.bottom + 18) },
+            { paddingBottom: inputBottomPadding },
             { opacity: footerOpacity, transform: [{ translateY: footerTranslateY }] },
           ]}
         >
@@ -222,7 +244,6 @@ const ChatScreen: React.FC = () => {
               value={message}
               onChangeText={setMessage}
             />
-
             <Ionicons name="mic-outline" size={20} color={colors.primary} />
           </View>
 
@@ -345,7 +366,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingTop: 6,
-    paddingBottom: 12,
     gap: 5,
   },
   inputWrapper: {
