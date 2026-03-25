@@ -29,6 +29,7 @@ const OnboardingStep1: React.FC = () => {
   const [chatStyle, setChatStyle] = useState('');
   const [showGenderOptions, setShowGenderOptions] = useState(false);
   const [showChatStyleOptions, setShowChatStyleOptions] = useState(false);
+
   const navigation = useNavigation<any>();
   const { setUser } = useApp();
 
@@ -50,22 +51,21 @@ const OnboardingStep1: React.FC = () => {
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#f3eded" />
 
-      {/* Back Arrow */}
-      <TouchableOpacity style={styles.backButton} onPress={handleBack}>
-        <Image
-          source={require('../assets/Arrow_Left_LG.png')}
-          style={styles.backIcon}
-          resizeMode="contain"
-        />
-      </TouchableOpacity>
-
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Step Indicator */}
-        <View style={styles.stepContainer}>
+        {/* Header Row (Back + Step Text) */}
+        <View style={styles.headerRow}>
+          <TouchableOpacity onPress={handleBack}>
+            <Image
+              source={require('../assets/Arrow_Left_LG.png')}
+              style={styles.backIcon}
+              resizeMode="contain"
+            />
+          </TouchableOpacity>
+
           <Text style={styles.stepText}>Step 1 of 3</Text>
         </View>
 
@@ -79,9 +79,9 @@ const OnboardingStep1: React.FC = () => {
           Tell Adam your name and how you'd like to chat. It helps him feel like a real friend.
         </Text>
 
-        {/* Input Fields */}
+        {/* Inputs */}
         <View style={styles.inputsContainer}>
-          {/* Nickname Input */}
+          {/* Nickname */}
           <View style={styles.inputGroup}>
             <Text style={styles.inputLabel}>What should I call you ?</Text>
             <View style={styles.inputContainer}>
@@ -95,7 +95,7 @@ const OnboardingStep1: React.FC = () => {
             </View>
           </View>
 
-          {/* Birthday Input */}
+          {/* Birthday */}
           <View style={styles.inputGroup}>
             <Text style={styles.inputLabel}>What's your birth date?</Text>
             <View style={styles.inputContainer}>
@@ -109,7 +109,7 @@ const OnboardingStep1: React.FC = () => {
             </View>
           </View>
 
-          {/* Gender Dropdown */}
+          {/* Gender */}
           <View style={styles.inputGroup}>
             <Text style={styles.inputLabel}>Gender</Text>
             <TouchableOpacity
@@ -122,14 +122,11 @@ const OnboardingStep1: React.FC = () => {
               <Text style={[styles.input, !gender && styles.placeholder]}>
                 {gender || 'Select your gender'}
               </Text>
-              <View style={styles.chevron}>
-                <View style={styles.chevronLineLeft} />
-                <View style={styles.chevronLineRight} />
-              </View>
             </TouchableOpacity>
+
             {showGenderOptions && (
               <View style={styles.dropdownOptionsContainer}>
-                {genderOptions.map((option, index) => (
+                {genderOptions.map((option) => (
                   <TouchableOpacity
                     key={option}
                     style={styles.dropdownOption}
@@ -139,16 +136,13 @@ const OnboardingStep1: React.FC = () => {
                     }}
                   >
                     <Text style={styles.dropdownOptionText}>{option}</Text>
-                    {index < genderOptions.length - 1 && (
-                      <View style={styles.dropdownDivider} />
-                    )}
                   </TouchableOpacity>
                 ))}
               </View>
             )}
           </View>
 
-          {/* Chat Style Dropdown */}
+          {/* Chat Style */}
           <View style={styles.inputGroup}>
             <Text style={styles.inputLabel}>How should I talk to you ?</Text>
             <TouchableOpacity
@@ -161,14 +155,11 @@ const OnboardingStep1: React.FC = () => {
               <Text style={[styles.input, !chatStyle && styles.placeholder]}>
                 {chatStyle || 'Select a type'}
               </Text>
-              <View style={styles.chevron}>
-                <View style={styles.chevronLineLeft} />
-                <View style={styles.chevronLineRight} />
-              </View>
             </TouchableOpacity>
+
             {showChatStyleOptions && (
               <View style={styles.dropdownOptionsContainer}>
-                {chatStyleOptions.map((option, index) => (
+                {chatStyleOptions.map((option) => (
                   <TouchableOpacity
                     key={option}
                     style={styles.dropdownOption}
@@ -178,9 +169,6 @@ const OnboardingStep1: React.FC = () => {
                     }}
                   >
                     <Text style={styles.dropdownOptionText}>{option}</Text>
-                    {index < chatStyleOptions.length - 1 && (
-                      <View style={styles.dropdownDivider} />
-                    )}
                   </TouchableOpacity>
                 ))}
               </View>
@@ -189,7 +177,7 @@ const OnboardingStep1: React.FC = () => {
         </View>
       </ScrollView>
 
-      {/* Continue Button */}
+      {/* Continue */}
       <TouchableOpacity style={styles.continueButton} onPress={handleContinue}>
         <Text style={styles.continueButtonText}>Continue</Text>
       </TouchableOpacity>
@@ -209,26 +197,32 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingBottom: 20,
   },
-  backButton: {
-    width: 28,
-    height: 28,
-    marginTop: 12,
-    marginBottom: 6,
-  },
-  backIcon: {
-    width: 24,
-    height: 24,
-  },
-  stepContainer: {
+
+  /* 🔥 NEW HEADER ROW */
+  headerRow: {
+    flexDirection: 'row',
     alignItems: 'center',
+    marginTop: 12,
     marginBottom: 10,
   },
+
+  backIcon: {
+    marginTop:22,
+    width: 24,
+    height: 24,
+    marginBottom:15,
+  },
+
   stepText: {
-    fontSize: 18,
-    fontFamily: 'Urbanist',
+    marginLeft: 100,
+    marginTop:22,
+    fontSize: 22,
+    fontFamily: 'Urbanist-SemiBold',
     color: '#7857e1',
     fontWeight: '600',
+    marginBottom:15,
   },
+
   progressBarContainer: {
     height: 6,
     backgroundColor: '#e6ddf6',
@@ -236,99 +230,75 @@ const styles = StyleSheet.create({
     marginBottom: 18,
   },
   progressBarFill: {
-    width: '18%',
+    width: '2%',
     height: 6,
     backgroundColor: '#7857e1',
     borderRadius: 6,
   },
+
   description: {
-    fontSize: 20,
-    fontFamily: 'Urbanist',
+    fontSize: 24,
+    fontFamily: 'Urbanist-SemiBold',
     color: '#7857e1',
     marginBottom: 24,
     lineHeight: 26,
+    letterSpacing:-0.5,
   },
+
   inputsContainer: {
     flex: 1,
   },
   inputGroup: {
     marginBottom: 18,
   },
-  dropdownOptionsContainer: {
-    marginTop: 8,
-    backgroundColor: '#ffffff',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#d9cfee',
-    overflow: 'hidden',
-    shadowColor: '#2b1b4d',
-    shadowOpacity: 0.12,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 6,
-  },
-  dropdownOption: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-  },
-  dropdownOptionText: {
-    fontSize: 15,
-    fontFamily: 'Urbanist',
-    color: '#4f3f77',
-  },
-  dropdownDivider: {
-    height: 1,
-    backgroundColor: '#efe9fb',
-    marginTop: 12,
-  },
+
   inputLabel: {
     fontSize: 16,
     fontFamily: 'Urbanist',
     color: '#7857e1',
     marginBottom: 8,
   },
+
   inputContainer: {
-    height: 44,
+    height: 48,
     backgroundColor: '#e9e2f4',
     borderWidth: 1,
     borderColor: '#7857e1',
     borderRadius: 10,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
     paddingHorizontal: 16,
   },
+
   input: {
-    flex: 1,
     fontSize: 15,
     fontFamily: 'Urbanist',
     color: '#7857e1',
   },
+
   placeholder: {
     color: '#b6a7d8',
   },
-  chevron: {
-    width: 24,
-    height: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
+
+  dropdownOptionsContainer: {
+    marginTop: 8,
+    height: 48,
+    backgroundColor: '#ffffff',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#d9cfee',
   },
-  chevronLineLeft: {
-    width: 10,
-    height: 2,
-    backgroundColor: '#7857e1',
-    transform: [{ rotate: '45deg' }],
-    position: 'absolute',
-    left: 5,
+
+  dropdownOption: {
+    padding: 12,
   },
-  chevronLineRight: {
-    width: 10,
-    height: 2,
-    backgroundColor: '#7857e1',
-    transform: [{ rotate: '-45deg' }],
-    position: 'absolute',
-    right: 5,
+
+  dropdownOptionText: {
+    fontSize: 15,
+    height: 48,
+    fontFamily: 'Urbanist',
+    color: '#4f3f77',
   },
+
   continueButton: {
     height: 48,
     backgroundColor: '#7857e1',
@@ -337,11 +307,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 16,
   },
+
   continueButtonText: {
     fontSize: 18,
-    fontFamily: 'Urbanist',
+    fontFamily: 'Urbanist-SemiBold',
     color: '#ffffff',
-    fontWeight: '600',
+    fontWeight: '100',
   },
 });
 

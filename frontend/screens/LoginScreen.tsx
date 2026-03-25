@@ -76,7 +76,7 @@ const LoginScreen: React.FC = () => {
           {/* Sign Up Link */}
           <TouchableOpacity onPress={() => navigation.navigate('SignUp')}>
             <Text style={styles.signupText}>
-              Don't have an account? <Text style={{ textDecorationLine: 'underline', fontWeight: 'bold',}}>
+              Don't have an account? <Text style={{fontFamily: "Urbanist-SemiBold" ,textDecorationLine: 'underline', fontWeight:'normal', color: "#7857e1"}}>
                Sign up
             </Text>
             </Text>
@@ -104,8 +104,8 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   bearImage: {
-    width: 300,
-    height: 300,
+    width: 360,
+    height: 360,
     marginTop: 18,
     marginBottom: 10,
   },
@@ -114,31 +114,31 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   logoText: {
-    fontSize: 34,
-    fontFamily: 'Urbanist',
+    fontSize: 40,
+    fontFamily: 'Urbanist-SemiBold',
     color: '#7857e1',
-    fontWeight: 'bold',
+    fontWeight: '100',
   },
   taglineText: {
-    fontSize: 14,
+    fontSize: 16,
     fontFamily: 'Urbanist',
     color: '#7857e1',
-    marginTop: 6,
+    marginTop: 0,
   },
   loginTitle: {
-    fontWeight:'bold',
-    fontSize: 22,
-    fontFamily: 'Urbanist',
+    fontWeight:'normal',
+    fontSize: 28,
+    fontFamily: 'Urbanist-SemiBold',
     color: '#7857e1',
     textAlign: 'center',
-    marginBottom: 16,
+    marginBottom: 20,
   },
   inputContainer: {
     backgroundColor: '#ede6fb',
     borderRadius: 12,
     borderWidth: 1,
     borderColor: '#7857e1',
-    height: 44,
+    height: 48,
     justifyContent: 'center',
     paddingHorizontal: 14,
     marginBottom: 10,
@@ -152,14 +152,14 @@ const styles = StyleSheet.create({
   continueButton: {
     backgroundColor: '#7857e1',
     borderRadius: 12,
-    height: 46,
+    height: 48,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 4,
+    marginTop: 0,
   },
   continueButtonText: {
     fontSize: 18,
-    fontFamily: 'Urbanist',
+    fontFamily: 'Urbanist-SemiBold',
     color: '#ffffff',
     fontWeight: '600',
   },
@@ -181,7 +181,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 12,
   },
   googleButton: {
-    height: 46,
+    height: 48,
     backgroundColor: '#ffffff',
     borderRadius: 12,
     borderWidth: 1,
@@ -198,14 +198,15 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   googleButtonText: {
-    fontSize: 16,
-    fontFamily: 'Urbanist',
+    fontSize: 18,
+    fontFamily: 'Urbanist-Medium',
     color: '#7857e1',
   },
   signupText: {
     fontSize: 12,
     fontFamily: 'Urbanist',
-    color: '#7857e1',
+    fontWeight: "normal",
+    color: '#000000',
     textAlign: 'center',
     marginTop: 14,
   },
