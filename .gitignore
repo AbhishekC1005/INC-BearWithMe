@@ -7,6 +7,7 @@ yarn-error.log*
 package-lock.json
 # Dependencies
 node_modules/
+package-lock.json
 
 # Build
 dist/
@@ -36,4 +37,8 @@ coverage/
 *.bak
 .cache/
 app_screens_figma/
+<<<<<<< HEAD
 .claude/
+=======
+.claude
+>>>>>>> f5356749ff3438e5271e9bde4b987827bda195af
