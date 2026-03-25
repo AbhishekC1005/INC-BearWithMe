@@ -68,13 +68,13 @@ const HomeScreen: React.FC = () => {
 
   const getTodayEntry = () => {
     const today = new Date().toDateString();
-    return journalEntries.find(entry => new Date(entry.timestamp).toDateString() === today);
+    return journalEntries.find((entry) => new Date(entry.timestamp).toDateString() === today);
   };
 
   const handleNext = () => {
     if (journalStep < totalSteps) {
-      setCompletedSteps(prev => Math.max(prev, journalStep));
-      setJournalStep(prev => prev + 1);
+      setCompletedSteps((prev) => Math.max(prev, journalStep));
+      setJournalStep((prev) => prev + 1);
       return;
     }
 
@@ -89,9 +89,7 @@ const HomeScreen: React.FC = () => {
     const year = now.getFullYear().toString();
 
     const moodLabel =
-      selectedMood === 'excellent' ? 'Excellent' : 
-      selectedMood === 'neutral' ? 'Neutral' : 
-      'Awful';
+      selectedMood === 'excellent' ? 'Excellent' : selectedMood === 'neutral' ? 'Neutral' : 'Awful';
 
     const title = mainThingText.trim() || 'Daily Reflection';
     const entryData = {
@@ -108,7 +106,7 @@ const HomeScreen: React.FC = () => {
 
     try {
       const existingEntry = getTodayEntry();
-      
+
       if (existingEntry && (todayEntryId || existingEntry.id)) {
         // Update existing entry if editing today's journal
         await updateJournalEntry(existingEntry.id, entryData);
@@ -117,7 +115,7 @@ const HomeScreen: React.FC = () => {
         await addJournalEntry(entryData);
         setTodayEntryId(existingEntry?.id || null);
       }
-      
+
       setCompletedSteps(totalSteps);
       setJournalCompleted(true);
     } catch (error) {
@@ -132,8 +130,8 @@ const HomeScreen: React.FC = () => {
 
   const handleBack = () => {
     if (journalStep > 1) {
-      setCompletedSteps(prev => Math.max(0, prev - 1));
-      setJournalStep(prev => prev - 1);
+      setCompletedSteps((prev) => Math.max(0, prev - 1));
+      setJournalStep((prev) => prev - 1);
     }
   };
 
@@ -165,9 +163,7 @@ const HomeScreen: React.FC = () => {
 
       <View style={styles.content}>
         <Text style={styles.greetingText}>Hi {nickname}</Text>
-        <Text style={styles.encouragementText}>
-          Take a deep breath. You're doing great today.
-        </Text>
+        <Text style={styles.encouragementText}>Take a deep breath. You're doing great today.</Text>
 
         {/* Journal Card */}
         <View style={styles.journalCard}>
@@ -201,8 +197,8 @@ const HomeScreen: React.FC = () => {
                 <View style={styles.cardHeaderText}>
                   <Text style={styles.cardTitle}>How was your day?</Text>
                   <Text style={styles.cardSubtitle}>
-                    Taking a moment to write down your thoughts helps Adam understand
-                    you better before you chat.
+                    Taking a moment to write down your thoughts helps Adam understand you better
+                    before you chat.
                   </Text>
                 </View>
                 <Image
@@ -221,7 +217,7 @@ const HomeScreen: React.FC = () => {
                   <Text style={styles.moodQuestion}>How are you feeling today?</Text>
 
                   <View style={styles.moodContainer}>
-                    {moodOptions.map(option => (
+                    {moodOptions.map((option) => (
                       <TouchableOpacity
                         key={option.id}
                         style={[
@@ -248,8 +244,7 @@ const HomeScreen: React.FC = () => {
               {journalStep === 2 && (
                 <>
                   <Text style={styles.journalQuestionText}>
-                    What's the main thing that happened today? (Even if it's just
-                    something small).
+                    What's the main thing that happened today? (Even if it's just something small).
                   </Text>
                   <View style={styles.textInputContainer}>
                     <TextInput
@@ -308,8 +303,8 @@ const HomeScreen: React.FC = () => {
               </View>
               <Text style={styles.adamTitle}>Talk to Adam</Text>
               <Text style={styles.adamDescription}>
-                You recently discussed [Last Topic] in your journal. Feel like
-                diving deeper? Adam is ready.
+                You recently discussed [Last Topic] in your journal. Feel like diving deeper? Adam
+                is ready.
               </Text>
             </View>
             <View style={styles.adamImagePlaceholder}>
@@ -328,8 +323,8 @@ const HomeScreen: React.FC = () => {
               </View>
               <Text style={styles.adamTitle}>Adam is ready when you are.</Text>
               <Text style={styles.adamDescription}>
-                Once you finish today's journaling, Step 2 will unlock. Adam is
-                waiting to hear how your day went!
+                Once you finish today's journaling, Step 2 will unlock. Adam is waiting to hear how
+                your day went!
               </Text>
             </View>
             <View style={styles.adamImagePlaceholder}>
@@ -342,7 +337,6 @@ const HomeScreen: React.FC = () => {
           </View>
         )}
       </View>
-
     </SafeAreaView>
   );
 };
@@ -367,7 +361,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom:10,
+    marginBottom: 10,
   },
   profileIconInner: {
     width: 28,
@@ -418,9 +412,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 8,
   },
-  
-  
-  
+
   cationBadge: {
     position: 'absolute',
     top: -4,
@@ -448,21 +440,21 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     fontWeight: '100',
     marginTop: -2,
-    letterSpacing:-0.2,
+    letterSpacing: -0.2,
   },
   encouragementText: {
     fontSize: 16,
     fontFamily: 'Urbanist',
     color: colors.textSecondary,
     marginBottom: 30,
-    letterSpacing:-0.1,
+    letterSpacing: -0.1,
   },
   journalCard: {
     backgroundColor: colors.white,
     borderRadius: 20,
     padding: 12,
     marginBottom: 8,
-    display: "flex"
+    display: 'flex',
   },
   cardHeader: {
     flexDirection: 'row',
@@ -478,7 +470,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Urbanist',
     color: colors.textPrimary,
     fontWeight: '600',
-    letterSpacing:-0.7,
+    letterSpacing: -0.7,
   },
   cardSubtitle: {
     fontSize: 10,
@@ -493,7 +485,7 @@ const styles = StyleSheet.create({
     height: 36,
   },
   journalCardIcon: {
-    alignItems:'flex-start',
+    alignItems: 'flex-start',
     width: 36,
     height: 36,
   },
@@ -670,7 +662,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     overflow: 'hidden',
-    marginTop:60,
+    marginTop: 20,
   },
   adamCardUnlocked: {
     backgroundColor: colors.primary,
@@ -699,7 +691,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Urbanist',
     color: colors.primary,
   },
-   startChatText: {
+  startChatText: {
     fontSize: 12,
     fontFamily: 'Urbanist',
     color: colors.primary,
@@ -732,8 +724,7 @@ const styles = StyleSheet.create({
     width: 164,
     height: 185,
     marginRight: 16,
-    marginBottom:25.5,
-
+    marginBottom: 25.5,
   },
 });
 
