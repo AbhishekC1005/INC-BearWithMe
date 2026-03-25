@@ -45,7 +45,7 @@ const HomeScreen: React.FC = () => {
   const [mainThingText, setMainThingText] = useState<string>('');
   const [needFromAdamText, setNeedFromAdamText] = useState<string>('');
   const [todayEntryId, setTodayEntryId] = useState<string | null>(null);
-  const nickname = route.params?.nickname || user?.name || 'Sudhir';
+  const nickname = route.params?.nickname || user?.name || 'Piyush';
   const journalEntry =
     mainThingText.trim() || needFromAdamText.trim()
       ? `${mainThingText.trim()} ${needFromAdamText.trim()}`.trim()
@@ -442,18 +442,19 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
   },
   greetingText: {
-    fontSize: 28,
-    fontFamily: 'Urbanist',
+    fontSize: 32,
+    fontFamily: 'Urbanist-Medium',
     color: colors.textSecondary,
-    fontWeight: '700',
+    fontWeight: '100',
     marginTop: 4,
+    letterSpacing:-0.2,
   },
   encouragementText: {
-    fontSize: 15,
+    fontSize: 16,
     fontFamily: 'Urbanist',
     color: colors.textSecondary,
-    marginTop: 4,
     marginBottom: 8,
+    letterSpacing:-0.1,
   },
   journalCard: {
     backgroundColor: colors.white,
