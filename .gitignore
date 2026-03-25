@@ -36,3 +36,4 @@ coverage/
 *.bak
 .cache/
 app_screens_figma/
+.claude
