@@ -48,19 +48,18 @@ const OnboardingStep3: React.FC = () => {
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#f3eded" />
 
-      {/* Back Arrow */}
-      <TouchableOpacity style={styles.backButton} onPress={handleBack}>
-        <Image
-          source={require('../assets/Arrow_Left_LG.png')}
-          style={styles.backIcon}
-          resizeMode="contain"
-        />
-      </TouchableOpacity>
-
-      {/* Step Indicator */}
-      <View style={styles.stepContainer}>
-        <Text style={styles.stepText}>Step 3 of 3</Text>
-      </View>
+       {/* Header Row (Back + Step Text) */}
+              <View style={styles.headerRow}>
+                <TouchableOpacity onPress={handleBack}>
+                  <Image
+                    source={require('../assets/Arrow_Left_LG.png')}
+                    style={styles.backIcon}
+                    resizeMode="contain"
+                  />
+                </TouchableOpacity>
+      
+                <Text style={styles.stepText}>Step 3 of 3</Text>
+              </View>
 
       {/* Progress Bar */}
       <View style={styles.progressBarContainer}>
@@ -128,19 +127,27 @@ const styles = StyleSheet.create({
     marginTop: 12,
     marginBottom: 6,
   },
-  backIcon: {
-    width: 24,
-    height: 24,
-  },
-  stepContainer: {
+  /* 🔥 NEW HEADER ROW */
+  headerRow: {
+    flexDirection: 'row',
     alignItems: 'center',
+    marginTop: 12,
     marginBottom: 10,
   },
+  backIcon: {
+    marginTop:22,
+    width: 24,
+    height: 24,
+    marginBottom:15,
+  },
   stepText: {
-    fontSize: 18,
-    fontFamily: 'Urbanist',
+    marginLeft: 100,
+    marginTop:22,
+    fontSize: 22,
+    fontFamily: 'Urbanist-SemiBold',
     color: '#7857e1',
     fontWeight: '600',
+    marginBottom:15,
   },
   progressBarContainer: {
     height: 6,
@@ -154,18 +161,19 @@ const styles = StyleSheet.create({
     backgroundColor: '#7857e1',
     borderRadius: 6,
   },
-  description: {
-    fontSize: 20,
-    fontFamily: 'Urbanist',
+  description: { 
+    fontSize: 24,
+    fontFamily: 'Urbanist-SemiBold',
     color: '#7857e1',
     marginBottom: 24,
     lineHeight: 26,
+    letterSpacing:-0.5,
   },
   optionsContainer: {
     flex: 1,
   },
   optionItem: {
-    height: 46,
+    height: 48,
     backgroundColor: '#ffffff',
     borderRadius: 12,
     borderWidth: 1,
@@ -202,6 +210,7 @@ const styles = StyleSheet.create({
     borderColor: '#7857e1',
   },
   checkmark: {
+    marginTop:5,
     width: 10,
     height: 8,
   },
@@ -233,7 +242,7 @@ const styles = StyleSheet.create({
   },
   finishButtonText: {
     fontSize: 18,
-    fontFamily: 'Urbanist',
+    fontFamily: 'Urbanist-SemiBold',
     color: '#ffffff',
     fontWeight: '600',
   },
