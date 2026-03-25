@@ -661,6 +661,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     overflow: 'hidden',
+    marginTop:60,
   },
   adamCardUnlocked: {
     backgroundColor: colors.primary,

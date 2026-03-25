@@ -78,7 +78,7 @@ const SignUpScreen: React.FC = () => {
           </TouchableOpacity>
 
           <TouchableOpacity onPress={handleLogin}>
-            <Text style={styles.loginLink}>Have an account? <Text style={{ textDecorationLine: 'underline', fontWeight: 'bold', }}>
+            <Text style={styles.loginLink}>Have an account? <Text style={{fontFamily: "Urbanist-SemiBold" ,textDecorationLine: 'underline', fontWeight: 'normal', color: "#7857e1"}}>
           Login
           </Text></Text>
           </TouchableOpacity>
@@ -105,8 +105,8 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   bearImage: {
-    width: 300,
-    height: 300,
+    width: 360,
+    height: 360,
     marginTop: 18,
     marginBottom: 10,
   },
@@ -115,27 +115,27 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   logoText: {
-    fontSize: 34,
-    fontFamily: 'Urbanist',
+    fontSize: 40,
+    fontFamily: 'Urbanist-SemiBold',
     color: '#7857e1',
-    fontWeight: 'bold',
+    fontWeight: 'normal',
   },
   taglineText: {
-    fontSize: 14,
+    fontSize: 16,
     fontFamily: 'Urbanist',
     color: '#7857e1',
-    marginTop: 6,
+    marginTop: 0,
   },
   title: {
-    fontWeight:'bold',
-    fontSize: 22,
-    fontFamily: 'Urbanist',
+    fontWeight:'normal',
+    fontSize: 28,
+    fontFamily: 'Urbanist-SemiBold',
     color: '#7857e1',
     textAlign: 'center',
-    marginBottom: 16,
+    marginBottom: 20,
   },
   inputContainer: {
-    height: 44,
+    height: 48,
     backgroundColor: '#ede6fb',
     borderRadius: 12,
     borderWidth: 1,
@@ -151,18 +151,18 @@ const styles = StyleSheet.create({
     padding: 0,
   },
   continueButton: {
-    height: 46,
+    height: 48,
     backgroundColor: '#7857e1',
     borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 4,
+    marginTop: 0,
   },
   continueButtonText: {
     fontSize: 18,
-    fontFamily: 'Urbanist',
+    fontFamily: 'Urbanist-SemiBold',
     color: '#ffffff',
-    fontWeight: '600',
+    fontWeight: '100',
   },
   dividerContainer: {
     flexDirection: 'row',
@@ -205,7 +205,7 @@ const styles = StyleSheet.create({
   loginLink: {
     fontSize: 12,
     fontFamily: 'Urbanist',
-    color: '#7857e1',
+    color: '#000000',
     textAlign: 'center',
     marginTop: 14,
   },

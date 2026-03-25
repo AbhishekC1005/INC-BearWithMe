@@ -46,19 +46,18 @@ const OnboardingStep2: React.FC = () => {
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#f3eded" />
 
-      {/* Back Arrow */}
-      <TouchableOpacity style={styles.backButton} onPress={handleBack}>
-        <Image
-          source={require('../assets/Arrow_Left_LG.png')}
-          style={styles.backIcon}
-          resizeMode="contain"
-        />
-      </TouchableOpacity>
-
-      {/* Step Indicator */}
-      <View style={styles.stepContainer}>
-        <Text style={styles.stepText}>Step 2 of 3</Text>
-      </View>
+       {/* Header Row (Back + Step Text) */}
+              <View style={styles.headerRow}>
+                <TouchableOpacity onPress={handleBack}>
+                  <Image
+                    source={require('../assets/Arrow_Left_LG.png')}
+                    style={styles.backIcon}
+                    resizeMode="contain"
+                  />
+                </TouchableOpacity>
+      
+                <Text style={styles.stepText}>Step 2 of 3</Text>
+              </View>
 
       {/* Progress Bar */}
       <View style={styles.progressBarContainer}>
@@ -148,25 +147,28 @@ const styles = StyleSheet.create({
     backgroundColor: '#f3eded',
     paddingHorizontal: 20,
   },
-  backButton: {
-    width: 28,
-    height: 28,
-    marginTop: 12,
-    marginBottom: 6,
-  },
-  backIcon: {
-    width: 24,
-    height: 24,
-  },
-  stepContainer: {
+ headerRow: {
+    flexDirection: 'row',
     alignItems: 'center',
+    marginTop: 12,
     marginBottom: 10,
   },
+
+  backIcon: {
+    marginTop:22,
+    width: 24,
+    height: 24,
+    marginBottom:15,
+  },
+
   stepText: {
-    fontSize: 18,
-    fontFamily: 'Urbanist',
+    marginLeft: 100,
+    marginTop:22,
+    fontSize: 22,
+    fontFamily: 'Urbanist-SemiBold',
     color: '#7857e1',
     fontWeight: '600',
+    marginBottom:15,
   },
   progressBarContainer: {
     height: 6,
@@ -175,17 +177,18 @@ const styles = StyleSheet.create({
     marginBottom: 18,
   },
   progressBarFill: {
-    width: '45%',
+    width: '33.33%',
     height: 6,
     backgroundColor: '#7857e1',
     borderRadius: 6,
   },
   description: {
-    fontSize: 20,
-    fontFamily: 'Urbanist',
+    fontSize: 24,
+    fontFamily: 'Urbanist-SemiBold',
     color: '#7857e1',
     marginBottom: 24,
     lineHeight: 26,
+    letterSpacing:-0.5,
   },
   inputsContainer: {
     flex: 1,
@@ -200,7 +203,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   inputContainer: {
-    height: 44,
+    height: 48,
     backgroundColor: '#e9e2f4',
     borderWidth: 1,
     borderColor: '#7857e1',
@@ -222,7 +225,7 @@ const styles = StyleSheet.create({
   },
   timeInputContainer: {
     width: '48%',
-    height: 44,
+    height: 48,
     backgroundColor: '#e9e2f4',
     borderWidth: 1,
     borderColor: '#7857e1',
@@ -270,9 +273,9 @@ const styles = StyleSheet.create({
   },
   continueButtonText: {
     fontSize: 18,
-    fontFamily: 'Urbanist',
+    fontFamily: 'Urbanist-SemiBold',
     color: '#ffffff',
-    fontWeight: '600',
+    fontWeight: '100',
   },
 });
 
