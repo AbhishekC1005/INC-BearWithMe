@@ -174,7 +174,7 @@ const HomeScreen: React.FC = () => {
           {journalCompleted ? (
             <>
               <View style={styles.cardHeader}>
-                <View>
+                <View style={styles.cardHeaderText}>
                   <Text style={styles.cardTitle}>Journal Completed</Text>
                   <Text style={styles.cardSubtitle}>
                     Well done for taking this important step. Today you shared:
@@ -198,7 +198,7 @@ const HomeScreen: React.FC = () => {
           ) : (
             <>
               <View style={styles.cardHeader}>
-                <View>
+                <View style={styles.cardHeaderText}>
                   <Text style={styles.cardTitle}>How was your day?</Text>
                   <Text style={styles.cardSubtitle}>
                     Taking a moment to write down your thoughts helps Adam understand
@@ -367,6 +367,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
+    marginBottom:10,
   },
   profileIconInner: {
     width: 28,
@@ -446,14 +447,14 @@ const styles = StyleSheet.create({
     fontFamily: 'Urbanist-Medium',
     color: colors.textSecondary,
     fontWeight: '100',
-    marginTop: 4,
+    marginTop: -2,
     letterSpacing:-0.2,
   },
   encouragementText: {
     fontSize: 16,
     fontFamily: 'Urbanist',
     color: colors.textSecondary,
-    marginBottom: 8,
+    marginBottom: 30,
     letterSpacing:-0.1,
   },
   journalCard: {
@@ -461,17 +462,23 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     padding: 12,
     marginBottom: 8,
+    display: "flex"
   },
   cardHeader: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-start',
     columnGap: 8,
+    alignItems: 'flex-start',
+  },
+  cardHeaderText: {
+    flex: 1,
   },
   cardTitle: {
     fontSize: 22,
     fontFamily: 'Urbanist',
     color: colors.textPrimary,
     fontWeight: '600',
+    letterSpacing:-0.7,
   },
   cardSubtitle: {
     fontSize: 10,
@@ -486,6 +493,7 @@ const styles = StyleSheet.create({
     height: 36,
   },
   journalCardIcon: {
+    alignItems:'flex-start',
     width: 36,
     height: 36,
   },
