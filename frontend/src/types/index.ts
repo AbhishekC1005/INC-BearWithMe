@@ -79,6 +79,7 @@ export interface JournalEntry {
   title: string;
   content: string;
   mainThing: string;
+  feeling?: string;
   needFromAdam: string;
   mood: string;
   moodEmoji: string;

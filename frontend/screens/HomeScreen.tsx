@@ -43,14 +43,19 @@ const HomeScreen: React.FC = () => {
   const [completedSteps, setCompletedSteps] = useState<number>(0);
   const [journalCompleted, setJournalCompleted] = useState<boolean>(false);
   const [mainThingText, setMainThingText] = useState<string>('');
+  const [feelingText, setFeelingText] = useState<string>('');
   const [needFromAdamText, setNeedFromAdamText] = useState<string>('');
   const [todayEntryId, setTodayEntryId] = useState<string | null>(null);
   const nickname = route.params?.nickname || user?.name || 'Piyush';
-  const journalEntry =
-    mainThingText.trim() || needFromAdamText.trim()
-      ? `${mainThingText.trim()} ${needFromAdamText.trim()}`.trim()
-      : 'Today I took time to reflect on my day and what I need next.';
-  const totalSteps = 3;
+  const journalEntryParts = [
+    mainThingText.trim(),
+    feelingText.trim(),
+    needFromAdamText.trim(),
+  ].filter(Boolean);
+  const journalEntry = journalEntryParts.length
+    ? journalEntryParts.join(' ')
+    : 'Today I took time to reflect on my day and what I need next.';
+  const totalSteps = 4;
   const progressPercent: `${number}%` = `${(completedSteps / totalSteps) * 100}%`;
   const profileInitial = useMemo(() => {
     const value = nickname.trim();
@@ -96,6 +101,7 @@ const HomeScreen: React.FC = () => {
       title,
       content: journalEntry,
       mainThing: mainThingText,
+      feeling: feelingText,
       needFromAdam: needFromAdamText,
       mood: moodLabel,
       moodEmoji: getMoodEmoji(),
@@ -171,16 +177,18 @@ const HomeScreen: React.FC = () => {
             <>
               <View style={styles.cardHeader}>
                 <View style={styles.cardHeaderText}>
-                  <Text style={styles.cardTitle}>Journal Completed</Text>
+                  <View style={styles.cardTitleRow}>
+                    <Text style={styles.cardTitle}>Journal Completed</Text>
+                    <Image
+                      source={require('../assets/Completed.png')}
+                      style={styles.journalCardIcon}
+                      resizeMode="contain"
+                    />
+                  </View>
                   <Text style={styles.cardSubtitle}>
                     Well done for taking this important step. Today you shared:
                   </Text>
                 </View>
-                <Image
-                  source={require('../assets/Completed.png')}
-                  style={styles.journalCardIcon}
-                  resizeMode="contain"
-                />
               </View>
 
               <View style={styles.entryContainer}>
@@ -195,17 +203,19 @@ const HomeScreen: React.FC = () => {
             <>
               <View style={styles.cardHeader}>
                 <View style={styles.cardHeaderText}>
-                  <Text style={styles.cardTitle}>How was your day?</Text>
+                  <View style={styles.cardTitleRow}>
+                    <Text style={styles.cardTitle}>How was your day?</Text>
+                    <Image
+                      source={require('../assets/Journal.png')}
+                      style={styles.journalCardIcon}
+                      resizeMode="contain"
+                    />
+                  </View>
                   <Text style={styles.cardSubtitle}>
                     Taking a moment to write down your thoughts helps Adam understand you better
                     before you chat.
                   </Text>
                 </View>
-                <Image
-                  source={require('../assets/Journal.png')}
-                  style={styles.journalCardIcon}
-                  resizeMode="contain"
-                />
               </View>
 
               <View style={styles.progressBarContainer}>
@@ -244,7 +254,8 @@ const HomeScreen: React.FC = () => {
               {journalStep === 2 && (
                 <>
                   <Text style={styles.journalQuestionText}>
-                    What's the main thing that happened today? (Even if it's just something small).
+                    Tell me the story - what's the main thing that happened today? (Even if it's
+                    small).
                   </Text>
                   <View style={styles.textInputContainer}>
                     <TextInput
@@ -263,7 +274,26 @@ const HomeScreen: React.FC = () => {
               {journalStep === 3 && (
                 <>
                   <Text style={styles.journalQuestionText}>
-                    What do you need most from Adam right now?
+                    How is that making you feel inside?
+                  </Text>
+                  <View style={styles.textInputContainer}>
+                    <TextInput
+                      style={styles.textInput}
+                      placeholder="e.g. It's sitting heavy and I feel drained..."
+                      placeholderTextColor="#7857e166"
+                      value={feelingText}
+                      onChangeText={setFeelingText}
+                      multiline
+                      textAlignVertical="top"
+                    />
+                  </View>
+                </>
+              )}
+
+              {journalStep === 4 && (
+                <>
+                  <Text style={styles.journalQuestionText}>
+                    How can I best support you with this right now?
                   </Text>
                   <View style={styles.textInputContainer}>
                     <TextInput
@@ -297,15 +327,15 @@ const HomeScreen: React.FC = () => {
 
         {journalCompleted ? (
           <TouchableOpacity style={styles.adamCard} onPress={handleStartChat}>
-            <View style={styles.adamCardContent}>
-              <View style={styles.startChatBadge}>
-                <Text style={styles.startChatText}>Start Chat</Text>
-              </View>
+            <View style={[styles.adamCardContent, styles.adamCardUnlockedContent]}>
               <Text style={styles.adamTitle}>Talk to Adam</Text>
               <Text style={styles.adamDescription}>
                 You recently discussed [Last Topic] in your journal. Feel like diving deeper? Adam
                 is ready.
               </Text>
+              <View style={styles.startChatBadge}>
+                <Text style={styles.startChatText}>Start Chat</Text>
+              </View>
             </View>
             <View style={styles.adamImagePlaceholder}>
               <Image
@@ -316,16 +346,16 @@ const HomeScreen: React.FC = () => {
             </View>
           </TouchableOpacity>
         ) : (
-          <View style={styles.adamCard}>
-            <View style={styles.adamCardContent}>
-              <View style={styles.unlockBadge}>
-                <Text style={styles.unlockText}>Unlock after Journaling</Text>
-              </View>
+          <View style={[styles.adamCard, styles.adamCardLocked]}>
+            <View style={[styles.adamCardContent, styles.adamCardLockedContent]}>
               <Text style={styles.adamTitle}>Adam is ready when you are.</Text>
               <Text style={styles.adamDescription}>
                 Once you finish today's journaling, Step 2 will unlock. Adam is waiting to hear how
                 your day went!
               </Text>
+              <View style={styles.unlockBadge}>
+                <Text style={styles.unlockText}>Unlock after Journaling</Text>
+              </View>
             </View>
             <View style={styles.adamImagePlaceholder}>
               <Image
@@ -471,9 +501,15 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
     fontWeight: '600',
     letterSpacing: -0.7,
+    flexShrink: 1,
+  },
+  cardTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    columnGap: 8,
   },
   cardSubtitle: {
-    fontSize: 10,
+    fontSize: 12,
     fontFamily: 'Urbanist',
     color: colors.textPrimary,
     opacity: 0.6,
@@ -485,9 +521,9 @@ const styles = StyleSheet.create({
     height: 36,
   },
   journalCardIcon: {
-    alignItems: 'flex-start',
     width: 36,
     height: 36,
+    marginLeft: 6,
   },
   notesLine1: {
     width: 28,
@@ -576,7 +612,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.primary,
     borderRadius: 10,
-    padding: 14,
+    padding: 12,
+    paddingTop:3,
     marginBottom: 10,
   },
   textInput: {
@@ -631,7 +668,7 @@ const styles = StyleSheet.create({
   },
   nextButtonText: {
     fontSize: 18,
-    fontFamily: 'Urbanist',
+    fontFamily: 'Urbanist-SemiBold',
     color: colors.white,
     fontWeight: '600',
   },
@@ -664,6 +701,9 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     marginTop: 20,
   },
+  adamCardLocked: {
+    alignItems: 'flex-start',
+  },
   adamCardUnlocked: {
     backgroundColor: colors.primary,
   },
@@ -673,10 +713,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 4,
     alignSelf: 'flex-start',
-    marginBottom: 8,
+    marginTop: 10,
   },
   adamCardContent: {
     flex: 1,
+  },
+  adamCardUnlockedContent: {
+    alignItems: 'flex-start',
+  },
+  adamCardLockedContent: {
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
   },
   unlockBadge: {
     backgroundColor: 'rgba(255,255,255,0.6)',
@@ -684,7 +731,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 4,
     alignSelf: 'flex-start',
-    marginBottom: 6,
+    marginTop: 10,
   },
   unlockText: {
     fontSize: 12,
