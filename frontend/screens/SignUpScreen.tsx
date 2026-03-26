@@ -20,18 +20,20 @@ import {
   signInWithCredential,
   GoogleAuthProvider,
 } from 'firebase/auth';
-import * as Google from 'expo-auth-session/providers/google';
-import * as WebBrowser from 'expo-web-browser';
+import {
+  GoogleSignin,
+  isErrorWithCode,
+  statusCodes,
+} from '@react-native-google-signin/google-signin';
 import { auth } from '../src/services/firebaseConfig';
 import { apiPost } from '../src/services/api';
 import { useApp } from '../src/contexts/AppContext';
 
-// Complete any in-progress auth sessions on app start
-WebBrowser.maybeCompleteAuthSession();
-
-// ── Replace with your real Web Client ID from Firebase Console ──
-// Firebase Console → Authentication → Sign-in method → Google → Web client ID
-const GOOGLE_WEB_CLIENT_ID = 'YOUR_GOOGLE_WEB_CLIENT_ID.apps.googleusercontent.com';
+// Configure Google Sign-In with the Web Client ID (needed for Firebase)
+GoogleSignin.configure({
+  webClientId:
+    '585485707727-flc0u1r1h7oldsq94r7pu94emalp2hvs.apps.googleusercontent.com',
+});
 
 const SignUpScreen: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -40,22 +42,15 @@ const SignUpScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const { setUser } = useApp();
 
-  // Google OAuth via expo-auth-session (useIdTokenAuthRequest only needs web client ID)
-  const [_request, response, promptAsync] = Google.useIdTokenAuthRequest({
-    clientId: GOOGLE_WEB_CLIENT_ID,
-  });
-
-  // Handle Google auth response
-  React.useEffect(() => {
-    if (response?.type === 'success') {
-      const { id_token } = response.params;
-      handleGoogleCredential(id_token);
-    }
-  }, [response]);
-
-  const handleGoogleCredential = async (idToken: string) => {
+  const handleGoogleSignIn = async () => {
     setLoading(true);
     try {
+      await GoogleSignin.hasPlayServices();
+      const response = await GoogleSignin.signIn();
+      const idToken = response.data?.idToken;
+      if (!idToken) throw new Error('No ID token returned from Google');
+
+      // Sign in to Firebase with the Google credential
       const credential = GoogleAuthProvider.credential(idToken);
       const cred = await signInWithCredential(auth, credential);
       const firebaseUser = cred.user;
@@ -111,9 +106,11 @@ const SignUpScreen: React.FC = () => {
       navigation.navigate('OnboardingStep1');
     } catch (error: any) {
       let msg = 'Something went wrong. Please try again.';
-      if (error?.code === 'auth/email-already-in-use') msg = 'An account with this email already exists.';
+      if (error?.code === 'auth/email-already-in-use')
+        msg = 'An account with this email already exists.';
       else if (error?.code === 'auth/invalid-email') msg = 'Invalid email address.';
-      else if (error?.code === 'auth/weak-password') msg = 'Password is too weak. Use at least 6 characters.';
+      else if (error?.code === 'auth/weak-password')
+        msg = 'Password is too weak. Use at least 6 characters.';
       Alert.alert('Sign up failed', msg);
     } finally {
       setLoading(false);
@@ -197,8 +194,7 @@ const SignUpScreen: React.FC = () => {
 
               <TouchableOpacity
                 style={styles.googleButton}
-                // @ts-ignore – useProxy is deprecated in types but still works at runtime
-                onPress={() => promptAsync({ useProxy: true })}
+                onPress={handleGoogleSignIn}
                 disabled={loading}
               >
                 <Image
@@ -210,9 +206,19 @@ const SignUpScreen: React.FC = () => {
               </TouchableOpacity>
 
               <TouchableOpacity onPress={handleLogin}>
-                <Text style={styles.loginLink}>Have an account? <Text style={{fontFamily: "Urbanist-SemiBold" ,textDecorationLine: 'underline', fontWeight: 'normal', color: "#7857e1"}}>
-          Login
-          </Text></Text>
+                <Text style={styles.loginLink}>
+                  Have an account?{' '}
+                  <Text
+                    style={{
+                      fontFamily: 'Urbanist-SemiBold',
+                      textDecorationLine: 'underline',
+                      fontWeight: 'normal',
+                      color: '#7857e1',
+                    }}
+                  >
+                    Login
+                  </Text>
+                </Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -261,7 +267,7 @@ const styles = StyleSheet.create({
     marginTop: 0,
   },
   title: {
-    fontWeight:'normal',
+    fontWeight: 'normal',
     fontSize: 28,
     fontFamily: 'Urbanist-SemiBold',
     color: '#7857e1',
