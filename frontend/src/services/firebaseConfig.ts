@@ -2,9 +2,13 @@
 // Replace the placeholder values with your Firebase project config.
 // Find them at: Firebase Console → Project Settings → General → Your apps → Web app
 
-import { initializeApp, getApps } from 'firebase/app';
-import { getAuth, initializeAuth } from 'firebase/auth';
-// @ts-ignore – react-native async storage persistence
+import { initializeApp, getApps, getApp } from 'firebase/app';
+import {
+  getAuth,
+  initializeAuth,
+  // @ts-ignore – export exists at runtime, types lag behind
+  getReactNativePersistence,
+} from 'firebase/auth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const firebaseConfig = {
@@ -18,10 +22,19 @@ const firebaseConfig = {
 };
 
 // Initialize Firebase (only once)
-const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
+const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 
-// Use standard getAuth for React Native
-const auth = getAuth(app);
+// Use initializeAuth with AsyncStorage persistence so auth state
+// survives app restarts (fixes the Firebase WARN about memory persistence).
+let auth: ReturnType<typeof getAuth>;
+try {
+  auth = initializeAuth(app, {
+    persistence: getReactNativePersistence(AsyncStorage),
+  });
+} catch {
+  // Already initialized (hot-reload) — grab existing instance
+  auth = getAuth(app);
+}
 
 export { app, auth };
 export default firebaseConfig;

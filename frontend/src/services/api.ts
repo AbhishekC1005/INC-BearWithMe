@@ -4,17 +4,21 @@ import { auth } from './firebaseConfig';
 import { Platform } from 'react-native';
 import Constants from 'expo-constants';
 
-// Determine the right backend URL:
-// - Android emulator: 10.0.2.2 maps to host machine's localhost
-// - iOS simulator: localhost works directly
-// - Physical device (Expo Go): use your machine's LAN IP
+// Determine the right backend URL dynamically.
+// Expo dev tools expose the host machine's LAN IP via debuggerHost,
+// so any device on the same network can reach the backend automatically.
 const getBaseUrl = () => {
-  // Expo Go on a physical device — use LAN IP
-  const isExpoGo = Constants.appOwnership === 'expo';
-  if (isExpoGo) {
-    return 'http://192.168.1.10:8000';
+  const debuggerHost =
+    Constants.expoConfig?.hostUri ??
+    (Constants as any).manifest?.debuggerHost ??
+    (Constants as any).manifest2?.extra?.expoGo?.debuggerHost;
+
+  if (debuggerHost) {
+    const host = debuggerHost.split(':')[0]; // strip Metro port
+    return `http://${host}:8000`;
   }
-  // Emulators
+
+  // Fallback for emulators / production builds
   return Platform.OS === 'android'
     ? 'http://10.0.2.2:8000'
     : 'http://localhost:8000';
