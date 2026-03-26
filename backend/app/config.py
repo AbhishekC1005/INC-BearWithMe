@@ -9,7 +9,7 @@ class Settings(BaseSettings):
     DATABASE_URL: str = "sqlite+aiosqlite:///./bearwithme.db"
     CORS_ORIGINS: list[str] = ["*"]  # tighten in production
     DEBUG: bool = True
-    FIREBASE_CREDENTIALS_PATH: str = ""
+    FIREBASE_CREDENTIALS_PATH: str = "firebase-credentials.json"
 
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
 

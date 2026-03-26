@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -7,12 +7,62 @@ import {
   StyleSheet,
   StatusBar,
   Image,
+  Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { signInWithEmailAndPassword } from 'firebase/auth';
+import { auth } from '../src/services/firebaseConfig';
+import { apiPost } from '../src/services/api';
+import { useApp } from '../src/contexts/AppContext';
 
 const LoginScreen: React.FC = () => {
   const navigation = useNavigation<any>();
+  const { setUser, refreshFromAPI } = useApp();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const handleLogin = async () => {
+    if (!email.trim() || !password.trim()) {
+      Alert.alert('Missing fields', 'Please enter your email and password.');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      // 1. Sign in with Firebase
+      const cred = await signInWithEmailAndPassword(auth, email.trim(), password);
+      const firebaseUser = cred.user;
+
+      // 2. Upsert user on backend
+      try {
+        await apiPost('/api/users', {
+          name: firebaseUser.displayName || firebaseUser.email || 'User',
+          email: firebaseUser.email,
+          firebase_uid: firebaseUser.uid,
+        });
+      } catch {
+        // User might already exist — that's fine
+      }
+
+      // 3. Sync data from API
+      await refreshFromAPI();
+
+      // 4. Navigate to main app
+      navigation.reset({ index: 0, routes: [{ name: 'MainTabs' }] });
+    } catch (error: any) {
+      let msg = 'Something went wrong. Please try again.';
+      if (error?.code === 'auth/user-not-found') msg = 'No account found with this email.';
+      else if (error?.code === 'auth/wrong-password') msg = 'Incorrect password.';
+      else if (error?.code === 'auth/invalid-email') msg = 'Invalid email address.';
+      else if (error?.code === 'auth/invalid-credential') msg = 'Invalid email or password.';
+      Alert.alert('Login failed', msg);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -42,15 +92,36 @@ const LoginScreen: React.FC = () => {
               placeholderTextColor="#7857e166"
               keyboardType="email-address"
               autoCapitalize="none"
+              value={email}
+              onChangeText={setEmail}
+              editable={!loading}
+            />
+          </View>
+
+          {/* Password Input */}
+          <View style={styles.inputContainer}>
+            <TextInput
+              style={styles.input}
+              placeholder="Enter your password"
+              placeholderTextColor="#7857e166"
+              secureTextEntry
+              value={password}
+              onChangeText={setPassword}
+              editable={!loading}
             />
           </View>
 
           {/* Continue Button */}
           <TouchableOpacity
-            style={styles.continueButton}
-            onPress={() => navigation.navigate('MainTabs', { screen: 'Home' })}
+            style={[styles.continueButton, loading && { opacity: 0.7 }]}
+            onPress={handleLogin}
+            disabled={loading}
           >
-            <Text style={styles.continueButtonText}>Continue</Text>
+            {loading ? (
+              <ActivityIndicator color="#ffffff" />
+            ) : (
+              <Text style={styles.continueButtonText}>Continue</Text>
+            )}
           </TouchableOpacity>
 
           {/* Divider */}
@@ -63,7 +134,7 @@ const LoginScreen: React.FC = () => {
           {/* Google Login Button */}
           <TouchableOpacity
             style={styles.googleButton}
-            onPress={() => navigation.navigate('MainTabs', { screen: 'Home' })}
+            onPress={() => Alert.alert('Coming soon', 'Google sign-in will be available soon!')}
           >
             <Image
               source={require('../assets/google_icon.png')}
@@ -104,8 +175,8 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   bearImage: {
-    width: 360,
-    height: 360,
+    width: 300,
+    height: 300,
     marginTop: 18,
     marginBottom: 10,
   },

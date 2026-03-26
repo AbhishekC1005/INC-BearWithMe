@@ -1,15 +1,27 @@
 """Journal entry endpoints — full CRUD with pagination."""
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy import func, select
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.auth import get_current_user_id
 from app.database import get_db
-from app.models import JournalEntry
-from app.routers.users import _get_dev_user_id
+from app.models import JournalEntry, User
 from app.schemas import JournalCreate, JournalResponse, JournalUpdate
 
 router = APIRouter(prefix="/api/journals", tags=["journals"])
+
+
+async def _resolve_user_id(
+    firebase_uid: str = Depends(get_current_user_id),
+    db: AsyncSession = Depends(get_db),
+) -> str:
+    """Map Firebase UID → internal user id."""
+    result = await db.execute(select(User.id).where(User.firebase_uid == firebase_uid))
+    user_id = result.scalar_one_or_none()
+    if not user_id:
+        raise HTTPException(status_code=404, detail="User not found — call POST /api/users first")
+    return user_id
 
 
 @router.get("", response_model=list[JournalResponse])
@@ -17,7 +29,7 @@ async def list_journals(
     skip: int = Query(0, ge=0),
     limit: int = Query(20, ge=1, le=100),
     db: AsyncSession = Depends(get_db),
-    user_id: str = Depends(_get_dev_user_id),
+    user_id: str = Depends(_resolve_user_id),
 ):
     result = await db.execute(
         select(JournalEntry)
@@ -33,7 +45,7 @@ async def list_journals(
 async def create_journal(
     body: JournalCreate,
     db: AsyncSession = Depends(get_db),
-    user_id: str = Depends(_get_dev_user_id),
+    user_id: str = Depends(_resolve_user_id),
 ):
     entry = JournalEntry(user_id=user_id, **body.model_dump())
     db.add(entry)
@@ -46,7 +58,7 @@ async def create_journal(
 async def get_journal(
     journal_id: str,
     db: AsyncSession = Depends(get_db),
-    user_id: str = Depends(_get_dev_user_id),
+    user_id: str = Depends(_resolve_user_id),
 ):
     result = await db.execute(
         select(JournalEntry).where(
@@ -65,7 +77,7 @@ async def update_journal(
     journal_id: str,
     body: JournalUpdate,
     db: AsyncSession = Depends(get_db),
-    user_id: str = Depends(_get_dev_user_id),
+    user_id: str = Depends(_resolve_user_id),
 ):
     result = await db.execute(
         select(JournalEntry).where(
@@ -89,7 +101,7 @@ async def update_journal(
 async def delete_journal(
     journal_id: str,
     db: AsyncSession = Depends(get_db),
-    user_id: str = Depends(_get_dev_user_id),
+    user_id: str = Depends(_resolve_user_id),
 ):
     result = await db.execute(
         select(JournalEntry).where(
