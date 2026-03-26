@@ -40,9 +40,9 @@ const SignUpScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const { setUser } = useApp();
 
-  // Google OAuth via expo-auth-session
-  const [_request, response, promptAsync] = Google.useAuthRequest({
-    webClientId: GOOGLE_WEB_CLIENT_ID,
+  // Google OAuth via expo-auth-session (useIdTokenAuthRequest only needs web client ID)
+  const [_request, response, promptAsync] = Google.useIdTokenAuthRequest({
+    clientId: GOOGLE_WEB_CLIENT_ID,
   });
 
   // Handle Google auth response
@@ -197,7 +197,8 @@ const SignUpScreen: React.FC = () => {
 
               <TouchableOpacity
                 style={styles.googleButton}
-                onPress={() => promptAsync()}
+                // @ts-ignore – useProxy is deprecated in types but still works at runtime
+                onPress={() => promptAsync({ useProxy: true })}
                 disabled={loading}
               >
                 <Image

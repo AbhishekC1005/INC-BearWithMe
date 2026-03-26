@@ -31,7 +31,8 @@ WebBrowser.maybeCompleteAuthSession();
 
 // ── Replace with your real Web Client ID from Firebase Console ──
 // Firebase Console → Authentication → Sign-in method → Google → Web client ID
-const GOOGLE_WEB_CLIENT_ID = 'YOUR_GOOGLE_WEB_CLIENT_ID.apps.googleusercontent.com';
+const GOOGLE_WEB_CLIENT_ID =
+  '585485707727-flc0u1r1h7oldsq94r7pu94emalp2hvs.apps.googleusercontent.com';
 
 const LoginScreen: React.FC = () => {
   const navigation = useNavigation<any>();
@@ -41,8 +42,8 @@ const LoginScreen: React.FC = () => {
   const [loading, setLoading] = useState(false);
 
   // Google OAuth via expo-auth-session
-  const [_request, response, promptAsync] = Google.useAuthRequest({
-    webClientId: GOOGLE_WEB_CLIENT_ID,
+  const [_request, response, promptAsync] = Google.useIdTokenAuthRequest({
+    clientId: GOOGLE_WEB_CLIENT_ID,
   });
 
   // Handle Google auth response
@@ -199,7 +200,8 @@ const LoginScreen: React.FC = () => {
               {/* Google Login Button */}
               <TouchableOpacity
                 style={styles.googleButton}
-                onPress={() => promptAsync()}
+                // @ts-ignore – useProxy is deprecated in types but still works at runtime
+                onPress={() => promptAsync({ useProxy: true })}
                 disabled={loading}
               >
                 <Image
@@ -213,9 +215,17 @@ const LoginScreen: React.FC = () => {
               {/* Sign Up Link */}
               <TouchableOpacity onPress={() => navigation.navigate('SignUp')}>
                 <Text style={styles.signupText}>
-                  Don't have an account? <Text style={{fontFamily: "Urbanist-SemiBold" ,textDecorationLine: 'underline', fontWeight:'normal', color: "#7857e1"}}>
-                   Sign up
-                </Text>
+                  Don't have an account?{' '}
+                  <Text
+                    style={{
+                      fontFamily: 'Urbanist-SemiBold',
+                      textDecorationLine: 'underline',
+                      fontWeight: 'normal',
+                      color: '#7857e1',
+                    }}
+                  >
+                    Sign up
+                  </Text>
                 </Text>
               </TouchableOpacity>
             </View>
@@ -265,7 +275,7 @@ const styles = StyleSheet.create({
     marginTop: 0,
   },
   loginTitle: {
-    fontWeight:'normal',
+    fontWeight: 'normal',
     fontSize: 28,
     fontFamily: 'Urbanist-SemiBold',
     color: '#7857e1',
@@ -344,7 +354,7 @@ const styles = StyleSheet.create({
   signupText: {
     fontSize: 12,
     fontFamily: 'Urbanist',
-    fontWeight: "normal",
+    fontWeight: 'normal',
     color: '#000000',
     textAlign: 'center',
     marginTop: 14,
