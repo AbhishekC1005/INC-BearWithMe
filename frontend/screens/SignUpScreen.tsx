@@ -19,14 +19,13 @@ import {
   createUserWithEmailAndPassword,
   signInWithCredential,
   GoogleAuthProvider,
+  signOut as firebaseSignOut,
 } from 'firebase/auth';
 import {
   GoogleSignin,
-  isErrorWithCode,
-  statusCodes,
 } from '@react-native-google-signin/google-signin';
 import { auth } from '../src/services/firebaseConfig';
-import { apiPost } from '../src/services/api';
+import { apiGet, apiPost } from '../src/services/api';
 import { useApp } from '../src/contexts/AppContext';
 
 // Configure Google Sign-In with the Web Client ID (needed for Firebase)
@@ -42,6 +41,18 @@ const SignUpScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const { setUser } = useApp();
 
+  /**
+   * Sign out of both Firebase and Google (cleanup on validation failure).
+   */
+  const cleanupAuth = async () => {
+    try {
+      await GoogleSignin.signOut();
+    } catch {}
+    try {
+      await firebaseSignOut(auth);
+    } catch {}
+  };
+
   const handleGoogleSignIn = async () => {
     setLoading(true);
     try {
@@ -55,20 +66,46 @@ const SignUpScreen: React.FC = () => {
       const cred = await signInWithCredential(auth, credential);
       const firebaseUser = cred.user;
 
-      // Create user on backend
+      // Check if user already exists in our DB
+      try {
+        const check = await apiGet<{ exists: boolean; is_onboarded: boolean }>(
+          '/api/users/check',
+        );
+
+        if (check.exists) {
+          // User already registered — block duplicate registration
+          await cleanupAuth();
+          Alert.alert(
+            'Account already exists',
+            'An account with this Google account already exists. Please log in instead.',
+            [
+              { text: 'OK' },
+              {
+                text: 'Go to Login',
+                onPress: () => navigation.navigate('Login'),
+              },
+            ],
+          );
+          return;
+        }
+      } catch {
+        // If check fails, proceed with registration attempt
+      }
+
+      // User doesn't exist — bootstrap user record
       try {
         await apiPost('/api/users', {
           name: firebaseUser.displayName || firebaseUser.email || 'User',
           email: firebaseUser.email,
-          firebase_uid: firebaseUser.uid,
         });
       } catch {
-        // User might already exist
+        // Bootstrap might fail — still try to proceed
       }
 
-      // Navigate to onboarding (new Google user)
-      navigation.navigate('OnboardingStep1');
+      // Navigate to onboarding
+      navigation.reset({ index: 0, routes: [{ name: 'OnboardingStep1' }] });
     } catch (error: any) {
+      if (error?.code === 'SIGN_IN_CANCELLED') return;
       Alert.alert('Google Sign-In failed', error?.message || 'Something went wrong.');
     } finally {
       setLoading(false);
@@ -87,30 +124,31 @@ const SignUpScreen: React.FC = () => {
 
     setLoading(true);
     try {
-      // 1. Create Firebase account
+      // 1. Create Firebase account (Firebase itself blocks duplicates)
       const cred = await createUserWithEmailAndPassword(auth, email.trim(), password);
       const firebaseUser = cred.user;
 
-      // 2. Create user on backend
+      // 2. Bootstrap user record in our DB
       try {
         await apiPost('/api/users', {
           name: firebaseUser.email || 'User',
           email: firebaseUser.email,
-          firebase_uid: firebaseUser.uid,
         });
       } catch {
         // okay if it fails — will be created later
       }
 
       // 3. Navigate to onboarding
-      navigation.navigate('OnboardingStep1');
+      navigation.reset({ index: 0, routes: [{ name: 'OnboardingStep1' }] });
     } catch (error: any) {
       let msg = 'Something went wrong. Please try again.';
-      if (error?.code === 'auth/email-already-in-use')
-        msg = 'An account with this email already exists.';
-      else if (error?.code === 'auth/invalid-email') msg = 'Invalid email address.';
-      else if (error?.code === 'auth/weak-password')
+      if (error?.code === 'auth/email-already-in-use') {
+        msg = 'An account with this email already exists. Please log in.';
+      } else if (error?.code === 'auth/invalid-email') {
+        msg = 'Invalid email address.';
+      } else if (error?.code === 'auth/weak-password') {
         msg = 'Password is too weak. Use at least 6 characters.';
+      }
       Alert.alert('Sign up failed', msg);
     } finally {
       setLoading(false);

@@ -4,6 +4,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { onAuthStateChanged, signOut as firebaseSignOut } from 'firebase/auth';
+import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import { User, MoodEntry, JournalEntry, ChatMessage } from '../types';
 import { apiGet, apiPost, apiPatch, apiDelete } from '../services/api';
 import { auth } from '../services/firebaseConfig';
@@ -100,6 +101,7 @@ function mapUserFromAPI(data: any): User {
     workStartTime: data.work_start_time ?? undefined,
     workEndTime: data.work_end_time ?? undefined,
     stressors: data.stressors ?? [],
+    isOnboarded: data.is_onboarded ?? false,
     createdAt: data.created_at,
   };
 }
@@ -390,15 +392,29 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const signOut = async () => {
     try {
+      // Clear Google session first so account picker is forced next time
+      try {
+        await GoogleSignin.signOut();
+      } catch {
+        // Google SDK may not be initialized if user never used Google sign-in
+      }
       await firebaseSignOut(auth);
     } catch {
-      // Force-clear local state even if Firebase sign-out fails
-      setUserState(null);
-      setMoodEntries([]);
-      setJournalEntries([]);
-      setChatMessages([]);
-      setIsOnboardedState(false);
+      // Force-clear local state even if sign-out calls fail
     }
+    // Always clear local state regardless of sign-out success
+    setUserState(null);
+    setMoodEntries([]);
+    setJournalEntries([]);
+    setChatMessages([]);
+    setIsOnboardedState(false);
+    await Promise.all([
+      safeRemoveItem(STORAGE_KEYS.USER),
+      safeRemoveItem(STORAGE_KEYS.MOOD_ENTRIES),
+      safeRemoveItem(STORAGE_KEYS.JOURNAL_ENTRIES),
+      safeRemoveItem(STORAGE_KEYS.CHAT_HISTORY),
+      safeRemoveItem(STORAGE_KEYS.ONBOARDED),
+    ]);
   };
 
   return (

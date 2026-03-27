@@ -7,34 +7,68 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.auth import get_current_user_id
 from app.database import get_db
 from app.models import User
-from app.schemas import UserCreate, UserResponse, UserUpdate
+from app.schemas import UserCheckResponse, UserCreate, UserResponse, UserUpdate
 
 router = APIRouter(prefix="/api/users", tags=["users"])
 
 
 @router.post("", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
-async def create_or_update_user(
+async def bootstrap_user(
     body: UserCreate,
     db: AsyncSession = Depends(get_db),
     firebase_uid: str = Depends(get_current_user_id),
 ):
-    """Create a new user or return the existing one (upsert by Firebase UID)."""
+    """Idempotent user bootstrap.
+
+    - If the firebase_uid already exists → return the existing user (200).
+    - If not → create a minimal record and return it (201).
+
+    This is NOT the onboarding endpoint. It only ensures a DB row exists
+    for the authenticated Firebase user.
+    """
     result = await db.execute(
         select(User).where(User.firebase_uid == firebase_uid)
     )
     user = result.scalar_one_or_none()
 
     if user:
-        # Update existing user with any new fields
-        for field, value in body.model_dump(exclude_unset=True, exclude={"firebase_uid"}).items():
-            setattr(user, field, value)
-    else:
-        user = User(firebase_uid=firebase_uid, **body.model_dump(exclude={"firebase_uid"}))
-        db.add(user)
+        # Already exists — return as-is (override 201 → 200)
+        from fastapi.responses import JSONResponse
+        return JSONResponse(
+            content=UserResponse.model_validate(user).model_dump(mode="json"),
+            status_code=200,
+        )
 
+    # Create minimal user record
+    user = User(
+        firebase_uid=firebase_uid,
+        name=body.name,
+        email=body.email,
+    )
+    db.add(user)
     await db.commit()
     await db.refresh(user)
     return user
+
+
+@router.get("/check", response_model=UserCheckResponse)
+async def check_user(
+    db: AsyncSession = Depends(get_db),
+    firebase_uid: str = Depends(get_current_user_id),
+):
+    """Check whether the authenticated Firebase user has a DB record.
+
+    Returns { exists: bool, is_onboarded: bool }.
+    Used by the frontend SplashScreen & Login/SignUp to decide routing.
+    """
+    result = await db.execute(
+        select(User).where(User.firebase_uid == firebase_uid)
+    )
+    user = result.scalar_one_or_none()
+
+    if user:
+        return UserCheckResponse(exists=True, is_onboarded=user.is_onboarded)
+    return UserCheckResponse(exists=False, is_onboarded=False)
 
 
 @router.get("/me", response_model=UserResponse)

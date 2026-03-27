@@ -10,15 +10,33 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useApp } from '../src/contexts/AppContext';
+import { apiPatch } from '../src/services/api';
 
 const OnboardingComplete: React.FC = () => {
   const navigation = useNavigation<any>();
-  const { user } = useApp();
+  const { user, setIsOnboarded } = useApp();
 
-  const handleContinue = () => {
-    navigation.navigate('MainTabs', {
-      screen: 'Home',
-      params: { nickname: user?.name },
+  const handleContinue = async () => {
+    // Mark onboarding as complete on backend
+    try {
+      await apiPatch('/api/users/me', { is_onboarded: true });
+    } catch {
+      // Continue even if API fails — we'll sync later
+    }
+
+    // Mark onboarding as complete locally
+    await setIsOnboarded(true);
+
+    // Reset navigation so user can't go back to onboarding
+    navigation.reset({
+      index: 0,
+      routes: [{
+        name: 'MainTabs',
+        params: {
+          screen: 'Home',
+          params: { nickname: user?.name },
+        },
+      }],
     });
   };
 

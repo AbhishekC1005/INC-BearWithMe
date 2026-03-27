@@ -19,14 +19,13 @@ import {
   signInWithEmailAndPassword,
   signInWithCredential,
   GoogleAuthProvider,
+  signOut as firebaseSignOut,
 } from 'firebase/auth';
 import {
   GoogleSignin,
-  isErrorWithCode,
-  statusCodes,
 } from '@react-native-google-signin/google-signin';
 import { auth } from '../src/services/firebaseConfig';
-import { apiPost } from '../src/services/api';
+import { apiGet } from '../src/services/api';
 import { useApp } from '../src/contexts/AppContext';
 
 // Configure Google Sign-In with the Web Client ID (needed for Firebase)
@@ -36,10 +35,40 @@ GoogleSignin.configure({
 
 const LoginScreen: React.FC = () => {
   const navigation = useNavigation<any>();
-  const { setUser, refreshFromAPI } = useApp();
+  const { refreshFromAPI } = useApp();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+
+  /**
+   * After Firebase auth succeeds, validate the user exists in our DB.
+   * Returns the check result or null if the user should be blocked.
+   */
+  const validateUserExists = async (): Promise<{
+    exists: boolean;
+    is_onboarded: boolean;
+  } | null> => {
+    try {
+      const check = await apiGet<{ exists: boolean; is_onboarded: boolean }>(
+        '/api/users/check',
+      );
+      return check;
+    } catch {
+      return null;
+    }
+  };
+
+  /**
+   * Sign out of both Firebase and Google (cleanup on validation failure).
+   */
+  const cleanupAuth = async () => {
+    try {
+      await GoogleSignin.signOut();
+    } catch {}
+    try {
+      await firebaseSignOut(auth);
+    } catch {}
+  };
 
   const handleGoogleSignIn = async () => {
     setLoading(true);
@@ -51,23 +80,38 @@ const LoginScreen: React.FC = () => {
 
       // Sign in to Firebase with the Google credential
       const credential = GoogleAuthProvider.credential(idToken);
-      const cred = await signInWithCredential(auth, credential);
-      const firebaseUser = cred.user;
+      await signInWithCredential(auth, credential);
 
-      // Upsert user on backend
-      try {
-        await apiPost('/api/users', {
-          name: firebaseUser.displayName || firebaseUser.email || 'User',
-          email: firebaseUser.email,
-          firebase_uid: firebaseUser.uid,
-        });
-      } catch {
-        // User might already exist
+      // Validate user exists in our database
+      const check = await validateUserExists();
+
+      if (!check || !check.exists) {
+        // User not registered in our DB — block access
+        await cleanupAuth();
+        Alert.alert(
+          'Account not found',
+          'No account found with this Google account. Please register first.',
+          [
+            { text: 'OK' },
+            {
+              text: 'Go to Sign Up',
+              onPress: () => navigation.navigate('SignUp'),
+            },
+          ],
+        );
+        return;
       }
 
+      // User exists — check onboarding
       await refreshFromAPI();
-      navigation.reset({ index: 0, routes: [{ name: 'MainTabs' }] });
+      if (check.is_onboarded) {
+        navigation.reset({ index: 0, routes: [{ name: 'MainTabs' }] });
+      } else {
+        navigation.reset({ index: 0, routes: [{ name: 'OnboardingStep1' }] });
+      }
     } catch (error: any) {
+      // Don't show alert if user cancelled the Google sign-in
+      if (error?.code === 'SIGN_IN_CANCELLED') return;
       Alert.alert('Google Sign-In failed', error?.message || 'Something went wrong.');
     } finally {
       setLoading(false);
@@ -83,28 +127,38 @@ const LoginScreen: React.FC = () => {
     setLoading(true);
     try {
       // 1. Sign in with Firebase
-      const cred = await signInWithEmailAndPassword(auth, email.trim(), password);
-      const firebaseUser = cred.user;
+      await signInWithEmailAndPassword(auth, email.trim(), password);
 
-      // 2. Upsert user on backend
-      try {
-        await apiPost('/api/users', {
-          name: firebaseUser.displayName || firebaseUser.email || 'User',
-          email: firebaseUser.email,
-          firebase_uid: firebaseUser.uid,
-        });
-      } catch {
-        // User might already exist — that's fine
+      // 2. Validate user exists in our database
+      const check = await validateUserExists();
+
+      if (!check || !check.exists) {
+        // Firebase account exists but no DB record — block access
+        await cleanupAuth();
+        Alert.alert(
+          'Account not found',
+          'No account found. Please register first.',
+          [
+            { text: 'OK' },
+            {
+              text: 'Go to Sign Up',
+              onPress: () => navigation.navigate('SignUp'),
+            },
+          ],
+        );
+        return;
       }
 
-      // 3. Sync data from API
+      // 3. User exists — sync data and navigate
       await refreshFromAPI();
-
-      // 4. Navigate to main app
-      navigation.reset({ index: 0, routes: [{ name: 'MainTabs' }] });
+      if (check.is_onboarded) {
+        navigation.reset({ index: 0, routes: [{ name: 'MainTabs' }] });
+      } else {
+        navigation.reset({ index: 0, routes: [{ name: 'OnboardingStep1' }] });
+      }
     } catch (error: any) {
       let msg = 'Something went wrong. Please try again.';
-      if (error?.code === 'auth/user-not-found') msg = 'No account found with this email.';
+      if (error?.code === 'auth/user-not-found') msg = 'No account found with this email. Please register first.';
       else if (error?.code === 'auth/wrong-password') msg = 'Incorrect password.';
       else if (error?.code === 'auth/invalid-email') msg = 'Invalid email address.';
       else if (error?.code === 'auth/invalid-credential') msg = 'Invalid email or password.';

@@ -71,6 +71,7 @@ export interface User {
   workStartTime?: string;
   workEndTime?: string;
   stressors?: string[];
+  isOnboarded?: boolean;
   createdAt?: string;
 }
 

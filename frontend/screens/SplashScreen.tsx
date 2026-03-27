@@ -10,6 +10,9 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { onAuthStateChanged } from 'firebase/auth';
+import { auth } from '../src/services/firebaseConfig';
+import { apiGet } from '../src/services/api';
 import type { RootStackParamList } from '../src/types';
 
 type SplashNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Splash'>;
@@ -22,9 +25,13 @@ const SplashScreen: React.FC = () => {
 
   const logoOpacity = React.useRef(new Animated.Value(1)).current;
   const transitionProgress = React.useRef(new Animated.Value(0)).current;
+  const hasNavigated = React.useRef(false);
 
-  React.useEffect(() => {
-    const timer = setTimeout(() => {
+  const navigateWithTransition = React.useCallback(
+    (screen: keyof RootStackParamList) => {
+      if (hasNavigated.current) return;
+      hasNavigated.current = true;
+
       Animated.parallel([
         Animated.timing(logoOpacity, {
           toValue: 0,
@@ -39,12 +46,53 @@ const SplashScreen: React.FC = () => {
           useNativeDriver: false,
         }),
       ]).start(() => {
-        navigation.replace('Login');
+        navigation.replace(screen as any);
+      });
+    },
+    [logoOpacity, navigation, transitionProgress],
+  );
+
+  React.useEffect(() => {
+    // Wait a moment for the splash visual, then check auth state
+    const timer = setTimeout(() => {
+      const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+        if (!firebaseUser) {
+          // No Firebase session → go to Login
+          navigateWithTransition('Login');
+          return;
+        }
+
+        // Firebase session exists → check if user is registered in our DB
+        try {
+          const check = await apiGet<{ exists: boolean; is_onboarded: boolean }>(
+            '/api/users/check',
+          );
+
+          if (check.exists && check.is_onboarded) {
+            // Fully registered + onboarded → straight to home
+            navigateWithTransition('MainTabs');
+          } else if (check.exists && !check.is_onboarded) {
+            // Registered but didn't finish onboarding
+            navigateWithTransition('OnboardingStep1');
+          } else {
+            // Firebase session exists but no DB record (stale) → sign out & login
+            try {
+              await auth.signOut();
+            } catch {}
+            navigateWithTransition('Login');
+          }
+        } catch {
+          // API unreachable → fallback to login
+          navigateWithTransition('Login');
+        }
+
+        // We only need the first emission
+        unsubscribe();
       });
     }, 900);
 
     return () => clearTimeout(timer);
-  }, [logoOpacity, navigation, transitionProgress]);
+  }, [navigateWithTransition]);
 
   const wipeHeight = transitionProgress.interpolate({
     inputRange: [0, 1],

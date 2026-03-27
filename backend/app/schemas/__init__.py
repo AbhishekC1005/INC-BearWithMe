@@ -35,6 +35,7 @@ class UserUpdate(BaseModel):
     work_start_time: str | None = None
     work_end_time: str | None = None
     stressors: list[str] | None = None
+    is_onboarded: bool | None = None
 
 
 class UserResponse(BaseModel):
@@ -51,9 +52,15 @@ class UserResponse(BaseModel):
     work_start_time: str | None = None
     work_end_time: str | None = None
     stressors: list[str] = Field(default_factory=list)
+    is_onboarded: bool = False
     created_at: datetime
 
     model_config = {"from_attributes": True}
+
+
+class UserCheckResponse(BaseModel):
+    exists: bool
+    is_onboarded: bool = False
 
 
 # ── Journal schemas ───────────────────────────────────────────
