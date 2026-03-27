@@ -10,7 +10,7 @@ import {
   Modal,
   Platform,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Svg, Path } from 'react-native-svg';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
@@ -30,13 +30,16 @@ const OnboardingStep2: React.FC = () => {
   const [showSleepPicker, setShowSleepPicker] = useState(false);
   const [showWakePicker, setShowWakePicker] = useState(false);
   const navigation = useNavigation<any>();
+  const route = useRoute<any>();
 
   const handleContinue = () => {
     navigation.navigate('OnboardingStep3', {
-      nickname: undefined,
-      birthday: undefined,
-      gender: undefined,
-      chatStyle: undefined,
+      // Forward Step 1 data
+      nickname: route.params?.nickname,
+      birthday: route.params?.birthday,
+      gender: route.params?.gender,
+      chatStyle: route.params?.chatStyle,
+      // Add Step 2 data
       occupation,
       sleepTime: sleepTime ? formatTime(sleepTime) : '',
       wakeUpTime: wakeUpTime ? formatTime(wakeUpTime) : '',

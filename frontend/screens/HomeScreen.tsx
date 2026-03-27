@@ -7,6 +7,7 @@ import {
   StatusBar,
   Image,
   TextInput,
+  Alert,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -38,7 +39,7 @@ const moodOptions: MoodOption[] = [
 const HomeScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
-  const { user, addJournalEntry, updateJournalEntry, journalEntries } = useApp();
+  const { user, addJournalEntry, updateJournalEntry, addMoodEntry, journalEntries, signOut } = useApp();
   const [selectedMood, setSelectedMood] = useState<string>('excellent');
   const [journalStep, setJournalStep] = useState<number>(1);
   const [completedSteps, setCompletedSteps] = useState<number>(0);
@@ -125,6 +126,24 @@ const HomeScreen: React.FC = () => {
 
       setCompletedSteps(totalSteps);
       setJournalCompleted(true);
+
+      // Persist mood to backend
+      const moodMap = {
+        excellent: { level: 'great' as const, intensity: 5 },
+        neutral: { level: 'okay' as const, intensity: 3 },
+        awful: { level: 'bad' as const, intensity: 1 },
+      };
+      const moodData = moodMap[selectedMood as keyof typeof moodMap] || moodMap.neutral;
+      try {
+        await addMoodEntry({
+          level: moodData.level,
+          intensity: moodData.intensity,
+          note: mainThingText.trim() || undefined,
+          triggers: [],
+        });
+      } catch (moodErr) {
+        console.warn('Mood save failed (non-blocking):', moodErr);
+      }
     } catch (error) {
       console.error('Error saving journal entry:', error);
     }
@@ -146,15 +165,37 @@ const HomeScreen: React.FC = () => {
     navigation.navigate('Chat');
   };
 
+  const handleLogout = () => {
+    Alert.alert(
+      'Sign Out',
+      'Are you sure you want to sign out?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Sign Out',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await signOut();
+              navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
+            } catch {
+              navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
+            }
+          },
+        },
+      ],
+    );
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor={colors.background} />
 
       {/* Header */}
       <View style={styles.header}>
-        <View style={styles.profileIcon}>
+        <TouchableOpacity onPress={handleLogout} style={styles.profileIcon}>
           <Text style={styles.profileInitial}>{profileInitial}</Text>
-        </View>
+        </TouchableOpacity>
 
         <View style={styles.notificationContainer}>
           <View style={styles.notificationIcon}>

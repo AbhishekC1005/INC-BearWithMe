@@ -6,9 +6,13 @@ import {
   StyleSheet,
   StatusBar,
   Image,
+  Alert,
+  ActivityIndicator,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useApp } from '../src/contexts/AppContext';
+import { apiPatch } from '../src/services/api';
 
 interface Option {
   id: string;
@@ -18,6 +22,9 @@ interface Option {
 
 const OnboardingStep3: React.FC = () => {
   const navigation = useNavigation<any>();
+  const route = useRoute<any>();
+  const { setIsOnboarded, refreshFromAPI } = useApp();
+  const [isSaving, setIsSaving] = useState(false);
   const [options, setOptions] = useState<Option[]>([
     { id: 'academic', label: 'Academic Pressure', selected: true },
     { id: 'social', label: 'Social Anxiety', selected: false },
@@ -36,8 +43,44 @@ const OnboardingStep3: React.FC = () => {
     );
   };
 
-  const handleFinish = () => {
-    navigation.navigate('OnboardingComplete');
+  const handleFinish = async () => {
+    if (isSaving) return;
+    setIsSaving(true);
+
+    const selectedStressors = options
+      .filter(o => o.selected)
+      .map(o => o.label);
+
+    // Collect all onboarding data from Steps 1 + 2 + 3
+    const profileData: Record<string, any> = {};
+
+    // Step 1 params
+    if (route.params?.nickname) profileData.nickname = route.params.nickname;
+    if (route.params?.birthday) profileData.birthday = route.params.birthday;
+    if (route.params?.gender) profileData.gender = route.params.gender;
+    if (route.params?.chatStyle) profileData.chat_style = route.params.chatStyle;
+
+    // Step 2 params
+    if (route.params?.occupation) profileData.occupation = route.params.occupation;
+    if (route.params?.sleepTime) profileData.sleep_time = route.params.sleepTime;
+    if (route.params?.wakeUpTime) profileData.wake_time = route.params.wakeUpTime;
+
+    // Step 3 — stressors
+    profileData.stressors = selectedStressors;
+
+    try {
+      await apiPatch('/api/users/me', profileData);
+      await refreshFromAPI();
+      await setIsOnboarded(true);
+      navigation.navigate('OnboardingComplete');
+    } catch (error) {
+      console.error('Failed to save onboarding data:', error);
+      // Still allow proceeding — data can be re-synced later
+      await setIsOnboarded(true);
+      navigation.navigate('OnboardingComplete');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleBack = () => {
@@ -108,8 +151,16 @@ const OnboardingStep3: React.FC = () => {
       </View>
 
       {/* Finish Button */}
-      <TouchableOpacity style={styles.finishButton} onPress={handleFinish}>
-        <Text style={styles.finishButtonText}>Finish</Text>
+      <TouchableOpacity
+        style={[styles.finishButton, isSaving && { opacity: 0.6 }]}
+        onPress={handleFinish}
+        disabled={isSaving}
+      >
+        {isSaving ? (
+          <ActivityIndicator color="#ffffff" size="small" />
+        ) : (
+          <Text style={styles.finishButtonText}>Finish</Text>
+        )}
       </TouchableOpacity>
     </SafeAreaView>
   );

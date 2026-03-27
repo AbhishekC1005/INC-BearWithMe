@@ -1,8 +1,9 @@
 // App Context - Global state management
 // Uses backend API as primary store, AsyncStorage as offline fallback.
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { onAuthStateChanged, signOut as firebaseSignOut } from 'firebase/auth';
 import { User, MoodEntry, JournalEntry, ChatMessage } from '../types';
 import { apiGet, apiPost, apiPatch, apiDelete } from '../services/api';
 import { auth } from '../services/firebaseConfig';
@@ -47,6 +48,9 @@ interface AppContextType {
 
   // Sync helper
   refreshFromAPI: () => Promise<void>;
+
+  // Auth
+  signOut: () => Promise<void>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -148,26 +152,36 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Load data on mount — try API first, fall back to cache
+  // Listen for auth state changes — refresh on sign-in, clear on sign-out
   useEffect(() => {
-    loadData();
-  }, []);
-
-  const loadData = async () => {
-    try {
-      // If the user is logged in with Firebase, pull from API
-      if (auth.currentUser) {
-        await refreshFromAPI();
-      } else {
-        // Fall back to cached data
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      try {
+        if (firebaseUser) {
+          await refreshFromAPI();
+        } else {
+          // User signed out — clear everything
+          setUserState(null);
+          setMoodEntries([]);
+          setJournalEntries([]);
+          setChatMessages([]);
+          setIsOnboardedState(false);
+          await Promise.all([
+            safeRemoveItem(STORAGE_KEYS.USER),
+            safeRemoveItem(STORAGE_KEYS.MOOD_ENTRIES),
+            safeRemoveItem(STORAGE_KEYS.JOURNAL_ENTRIES),
+            safeRemoveItem(STORAGE_KEYS.CHAT_HISTORY),
+            safeRemoveItem(STORAGE_KEYS.ONBOARDED),
+          ]);
+        }
+      } catch {
         await loadFromStorage();
+      } finally {
+        setIsLoading(false);
       }
-    } catch {
-      await loadFromStorage();
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   const loadFromStorage = async () => {
     try {
@@ -374,6 +388,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
     await safeRemoveItem(STORAGE_KEYS.CHAT_HISTORY);
   };
 
+  const signOut = async () => {
+    try {
+      await firebaseSignOut(auth);
+    } catch {
+      // Force-clear local state even if Firebase sign-out fails
+      setUserState(null);
+      setMoodEntries([]);
+      setJournalEntries([]);
+      setChatMessages([]);
+      setIsOnboardedState(false);
+    }
+  };
+
   return (
     <AppContext.Provider
       value={{
@@ -394,6 +421,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         clearChat,
         isLoading,
         refreshFromAPI,
+        signOut,
       }}
     >
       {children}

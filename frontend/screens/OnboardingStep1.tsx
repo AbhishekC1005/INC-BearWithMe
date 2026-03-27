@@ -14,7 +14,6 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
-import { useApp } from '../src/contexts/AppContext';
 import { Svg, Path, Rect, Line } from 'react-native-svg';
 
 const OnboardingStep1: React.FC = () => {
@@ -36,10 +35,8 @@ const OnboardingStep1: React.FC = () => {
   const [showDatePicker, setShowDatePicker] = useState(false);
 
   const navigation = useNavigation<any>();
-  const { setUser } = useApp();
 
   const handleContinue = () => {
-    setUser({ name: nickname });
     navigation.navigate('OnboardingStep2', {
       nickname,
       birthday: birthday ? birthday.toISOString().split('T')[0] : '',
