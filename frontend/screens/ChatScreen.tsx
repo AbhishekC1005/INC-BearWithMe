@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Animated,
   View,
@@ -12,12 +12,19 @@ import {
   Platform,
   ScrollView,
   Image,
+  Dimensions,
+  ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { MainTabParamList } from '../src/types';
+import { useApp } from '../src/contexts/AppContext';
+
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const DRAWER_WIDTH = SCREEN_WIDTH * 0.78;
 
 const colors = {
   primary: '#7857e1',
@@ -26,56 +33,78 @@ const colors = {
   inputBackground: '#7857e126',
   inputBorder: '#7857e1',
   placeholder: '#b7a8ea',
-};
-
-type ChatMessage = {
-  id: number;
-  text: string;
-  sender: 'user' | 'bot';
+  drawerBg: '#2d1f5e',
+  drawerItem: 'rgba(255,255,255,0.08)',
+  drawerItemActive: 'rgba(120, 87, 225, 0.35)',
 };
 
 const ChatScreen: React.FC = () => {
   const navigation = useNavigation<BottomTabNavigationProp<MainTabParamList, 'Chat'>>();
   const insets = useSafeAreaInsets();
+  const {
+    chatSessions,
+    currentSessionId,
+    chatMessages,
+    createChatSession,
+    deleteChatSession,
+    loadSessionMessages,
+    sendChatMessage,
+    refreshChatSessions,
+  } = useApp();
+
   const [message, setMessage] = useState('');
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [isThinking, setIsThinking] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const [hasEverSentMessage, setHasEverSentMessage] = useState(false);
-  // heroMounted keeps the node in the tree so we can animate before unmounting
   const [heroMounted, setHeroMounted] = useState(true);
 
   const scrollRef = useRef<ScrollView>(null);
-  const heroOpacity = useRef(new Animated.Value(0)).current; // entrance animation
+  const drawerAnim = useRef(new Animated.Value(-DRAWER_WIDTH)).current;
+  const overlayAnim = useRef(new Animated.Value(0)).current;
+  const heroOpacity = useRef(new Animated.Value(0)).current;
   const heroTranslateY = useRef(new Animated.Value(14)).current;
-  // Separate value for keyboard-triggered hide / show
   const heroVisibility = useRef(new Animated.Value(1)).current;
   const footerOpacity = useRef(new Animated.Value(0)).current;
   const footerTranslateY = useRef(new Animated.Value(10)).current;
   const hasAnimatedRef = useRef(false);
-  // Keep a ref so the keyboard listener always sees the latest value
   const hasEverSentRef = useRef(false);
 
-  // Animate hero out when keyboard opens, back in when it closes
-  React.useEffect(() => {
+  // Load sessions on mount
+  useEffect(() => {
+    refreshChatSessions();
+  }, []);
+
+  // When switching sessions, determine hero state
+  useEffect(() => {
+    if (chatMessages.length > 0) {
+      hasEverSentRef.current = true;
+      setHasEverSentMessage(true);
+      setHeroMounted(false);
+    } else {
+      hasEverSentRef.current = false;
+      setHasEverSentMessage(false);
+      setHeroMounted(true);
+      heroVisibility.setValue(1);
+    }
+  }, [currentSessionId, chatMessages.length]);
+
+  // Keyboard listeners
+  useEffect(() => {
     const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
     const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
 
     const showSub = Keyboard.addListener(showEvent, () => {
-      // Fade + slide up, then collapse layout by unmounting
-      Animated.parallel([
-        Animated.timing(heroVisibility, {
-          toValue: 0,
-          duration: 180,
-          useNativeDriver: true,
-        }),
-      ]).start(({ finished }) => {
+      Animated.timing(heroVisibility, {
+        toValue: 0,
+        duration: 180,
+        useNativeDriver: true,
+      }).start(({ finished }) => {
         if (finished) setHeroMounted(false);
       });
     });
 
     const hideSub = Keyboard.addListener(hideEvent, () => {
-      // Don't restore if the user has already started chatting
       if (hasEverSentRef.current) return;
-      // Mount first so the node exists, then fade in
       setHeroMounted(true);
       heroVisibility.setValue(0);
       Animated.timing(heroVisibility, {
@@ -91,8 +120,9 @@ const ChatScreen: React.FC = () => {
     };
   }, [heroVisibility]);
 
+  // Entrance animation
   useFocusEffect(
-    React.useCallback(() => {
+    useCallback(() => {
       if (!hasAnimatedRef.current) {
         heroOpacity.setValue(0);
         heroTranslateY.setValue(14);
@@ -101,60 +131,86 @@ const ChatScreen: React.FC = () => {
       }
 
       const entranceAnimation = Animated.parallel([
-        Animated.timing(heroOpacity, {
-          toValue: 1,
-          duration: 360,
-          useNativeDriver: true,
-        }),
-        Animated.timing(heroTranslateY, {
-          toValue: 0,
-          duration: 360,
-          useNativeDriver: true,
-        }),
+        Animated.timing(heroOpacity, { toValue: 1, duration: 360, useNativeDriver: true }),
+        Animated.timing(heroTranslateY, { toValue: 0, duration: 360, useNativeDriver: true }),
         Animated.sequence([
           Animated.delay(100),
           Animated.parallel([
-            Animated.timing(footerOpacity, {
-              toValue: 1,
-              duration: 280,
-              useNativeDriver: true,
-            }),
-            Animated.timing(footerTranslateY, {
-              toValue: 0,
-              duration: 280,
-              useNativeDriver: true,
-            }),
+            Animated.timing(footerOpacity, { toValue: 1, duration: 280, useNativeDriver: true }),
+            Animated.timing(footerTranslateY, { toValue: 0, duration: 280, useNativeDriver: true }),
           ]),
         ]),
       ]);
 
       entranceAnimation.start();
       hasAnimatedRef.current = true;
-
-      return () => {
-        entranceAnimation.stop();
-      };
+      return () => entranceAnimation.stop();
     }, [footerOpacity, footerTranslateY, heroOpacity, heroTranslateY])
   );
 
-  const dummyReplies = useMemo(
-    () => [
-      'I hear you. Tell me a little more about how this felt today.',
-      'That makes sense. What do you think triggered this feeling?',
-      'Thanks for sharing this. Want to try one small next step together?',
-      'I am with you. We can break this into one simple step right now.',
-    ],
-    []
-  );
+  // ── Drawer ────────────────────────────────────────
 
-  const handleSend = () => {
+  const openDrawer = () => {
+    setDrawerOpen(true);
+    Animated.parallel([
+      Animated.spring(drawerAnim, { toValue: 0, useNativeDriver: true, speed: 18, bounciness: 4 }),
+      Animated.timing(overlayAnim, { toValue: 1, duration: 250, useNativeDriver: true }),
+    ]).start();
+  };
+
+  const closeDrawer = () => {
+    Animated.parallel([
+      Animated.timing(drawerAnim, { toValue: -DRAWER_WIDTH, duration: 220, useNativeDriver: true }),
+      Animated.timing(overlayAnim, { toValue: 0, duration: 220, useNativeDriver: true }),
+    ]).start(() => setDrawerOpen(false));
+  };
+
+  const handleNewChat = async () => {
+    closeDrawer();
+    try {
+      await createChatSession();
+    } catch (e: any) {
+      Alert.alert('Error', 'Could not create new chat');
+    }
+  };
+
+  const handleSelectSession = async (sessionId: string) => {
+    closeDrawer();
+    await loadSessionMessages(sessionId);
+  };
+
+  const handleDeleteSession = (sessionId: string, title: string) => {
+    Alert.alert('Delete Chat', `Delete "${title}"?`, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: async () => {
+          await deleteChatSession(sessionId);
+        },
+      },
+    ]);
+  };
+
+  // ── Send ──────────────────────────────────────────
+
+  const handleSend = async () => {
     const trimmed = message.trim();
-    if (!trimmed) return;
+    if (!trimmed || isThinking) return;
 
-    // Animate hero out before marking it gone permanently
+    // If no active session, create one first
+    if (!currentSessionId) {
+      try {
+        await createChatSession();
+      } catch {
+        Alert.alert('Error', 'Could not create chat session');
+        return;
+      }
+    }
+
+    // Hide hero
     hasEverSentRef.current = true;
     setHasEverSentMessage(true);
-
     Animated.timing(heroVisibility, {
       toValue: 0,
       duration: 180,
@@ -163,27 +219,17 @@ const ChatScreen: React.FC = () => {
       if (finished) setHeroMounted(false);
     });
 
-    const userMessage: ChatMessage = {
-      id: Date.now(),
-      text: trimmed,
-      sender: 'user',
-    };
-
-    setMessages((prev) => [...prev, userMessage]);
     setMessage('');
+    setIsThinking(true);
 
-    const replyText = dummyReplies[Math.floor(Math.random() * dummyReplies.length)];
-    setTimeout(() => {
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: Date.now() + 1,
-          text: replyText,
-          sender: 'bot',
-        },
-      ]);
-      scrollRef.current?.scrollToEnd({ animated: true });
-    }, 500);
+    try {
+      await sendChatMessage(trimmed);
+    } catch (e: any) {
+      Alert.alert('Error', 'Adam could not respond. Please try again.');
+    } finally {
+      setIsThinking(false);
+      setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 100);
+    }
   };
 
   const inputBottomPadding = Math.max(14, insets.bottom + 8);
@@ -192,6 +238,68 @@ const ChatScreen: React.FC = () => {
     <SafeAreaView style={styles.container} edges={['top']}>
       <StatusBar barStyle="dark-content" backgroundColor={colors.background} />
 
+      {/* ── Drawer Overlay ── */}
+      {drawerOpen && (
+        <Animated.View
+          style={[styles.drawerOverlay, { opacity: overlayAnim }]}
+        >
+          <TouchableOpacity
+            style={StyleSheet.absoluteFill}
+            activeOpacity={1}
+            onPress={closeDrawer}
+          />
+        </Animated.View>
+      )}
+
+      {/* ── Left Drawer ── */}
+      <Animated.View
+        style={[
+          styles.drawer,
+          { transform: [{ translateX: drawerAnim }], paddingTop: insets.top + 12 },
+        ]}
+      >
+        <View style={styles.drawerHeader}>
+          <Text style={styles.drawerTitle}>Chat History</Text>
+          <TouchableOpacity onPress={closeDrawer}>
+            <Ionicons name="close" size={24} color="#fff" />
+          </TouchableOpacity>
+        </View>
+
+        <TouchableOpacity style={styles.newChatButton} onPress={handleNewChat}>
+          <Ionicons name="add-circle-outline" size={20} color="#fff" />
+          <Text style={styles.newChatText}>New Chat</Text>
+        </TouchableOpacity>
+
+        <ScrollView style={styles.drawerList} showsVerticalScrollIndicator={false}>
+          {chatSessions.length === 0 ? (
+            <Text style={styles.drawerEmpty}>No chats yet. Start a new one!</Text>
+          ) : (
+            chatSessions.map((session) => (
+              <TouchableOpacity
+                key={session.id}
+                style={[
+                  styles.drawerItem,
+                  currentSessionId === session.id && styles.drawerItemActive,
+                ]}
+                onPress={() => handleSelectSession(session.id)}
+                onLongPress={() => handleDeleteSession(session.id, session.title)}
+              >
+                <Ionicons
+                  name="chatbubble-outline"
+                  size={16}
+                  color="rgba(255,255,255,0.7)"
+                  style={{ marginRight: 10 }}
+                />
+                <Text style={styles.drawerItemText} numberOfLines={1}>
+                  {session.title}
+                </Text>
+              </TouchableOpacity>
+            ))
+          )}
+        </ScrollView>
+      </Animated.View>
+
+      {/* ── Main Chat Area ── */}
       <KeyboardAvoidingView style={styles.body} behavior="padding" keyboardVerticalOffset={0}>
         {/* Header */}
         <Animated.View
@@ -200,7 +308,7 @@ const ChatScreen: React.FC = () => {
             { opacity: heroOpacity, transform: [{ translateY: heroTranslateY }] },
           ]}
         >
-          <TouchableOpacity style={styles.iconButton}>
+          <TouchableOpacity style={styles.iconButton} onPress={openDrawer}>
             <Ionicons name="menu-outline" size={22} color={colors.primary} />
           </TouchableOpacity>
 
@@ -211,11 +319,7 @@ const ChatScreen: React.FC = () => {
           </TouchableOpacity>
         </Animated.View>
 
-        {/*
-          Hero stays mounted until the fade-out finishes (heroMounted),
-          then unmounts so the layout collapses and KAV can lift the input.
-          heroVisibility drives the smooth fade; heroOpacity is the entrance animation.
-        */}
+        {/* Hero */}
         {heroMounted && (
           <Animated.View
             style={[
@@ -248,24 +352,35 @@ const ChatScreen: React.FC = () => {
             showsVerticalScrollIndicator={false}
             onContentSizeChange={() => scrollRef.current?.scrollToEnd({ animated: true })}
           >
-            {messages.map((item) => (
+            {chatMessages.map((item) => (
               <View
                 key={item.id}
                 style={[
                   styles.messageBubble,
-                  item.sender === 'user' ? styles.userBubble : styles.botBubble,
+                  item.role === 'user' ? styles.userBubble : styles.botBubble,
                 ]}
               >
                 <Text
                   style={[
                     styles.messageText,
-                    item.sender === 'user' ? styles.userMessageText : styles.botMessageText,
+                    item.role === 'user' ? styles.userMessageText : styles.botMessageText,
                   ]}
                 >
-                  {item.text}
+                  {item.content}
                 </Text>
               </View>
             ))}
+
+            {/* Typing indicator */}
+            {isThinking && (
+              <View style={[styles.messageBubble, styles.botBubble, styles.typingBubble]}>
+                <View style={styles.typingDots}>
+                  <TypingDot delay={0} />
+                  <TypingDot delay={200} />
+                  <TypingDot delay={400} />
+                </View>
+              </View>
+            )}
           </ScrollView>
         </View>
 
@@ -284,22 +399,53 @@ const ChatScreen: React.FC = () => {
               placeholderTextColor={colors.placeholder}
               value={message}
               onChangeText={setMessage}
+              editable={!isThinking}
+              onSubmitEditing={handleSend}
+              returnKeyType="send"
             />
             <Ionicons name="mic-outline" size={20} color={colors.primary} />
           </View>
 
           <TouchableOpacity
-            style={[styles.sendButton, !message.trim() && styles.sendButtonIdle]}
+            style={[styles.sendButton, (!message.trim() || isThinking) && styles.sendButtonIdle]}
             onPress={handleSend}
-            disabled={!message.trim()}
+            disabled={!message.trim() || isThinking}
           >
-            <Ionicons name="arrow-up" size={22} color={colors.white} />
+            {isThinking ? (
+              <ActivityIndicator color={colors.white} size="small" />
+            ) : (
+              <Ionicons name="arrow-up" size={22} color={colors.white} />
+            )}
           </TouchableOpacity>
         </Animated.View>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
 };
+
+// ── Typing Dot Animation ─────────────────────────────
+
+const TypingDot: React.FC<{ delay: number }> = ({ delay }) => {
+  const opacity = useRef(new Animated.Value(0.3)).current;
+
+  useEffect(() => {
+    const animation = Animated.loop(
+      Animated.sequence([
+        Animated.delay(delay),
+        Animated.timing(opacity, { toValue: 1, duration: 400, useNativeDriver: true }),
+        Animated.timing(opacity, { toValue: 0.3, duration: 400, useNativeDriver: true }),
+      ])
+    );
+    animation.start();
+    return () => animation.stop();
+  }, [delay, opacity]);
+
+  return (
+    <Animated.View style={[styles.typingDot, { opacity }]} />
+  );
+};
+
+// ── Styles ───────────────────────────────────────────
 
 const styles = StyleSheet.create({
   container: {
@@ -309,6 +455,81 @@ const styles = StyleSheet.create({
   body: {
     flex: 1,
   },
+
+  // ── Drawer ──
+  drawerOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    zIndex: 10,
+  },
+  drawer: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    left: 0,
+    width: DRAWER_WIDTH,
+    backgroundColor: colors.drawerBg,
+    zIndex: 11,
+    paddingHorizontal: 16,
+    paddingBottom: 24,
+  },
+  drawerHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  drawerTitle: {
+    fontSize: 22,
+    fontFamily: 'Urbanist-SemiBold',
+    color: '#fff',
+    letterSpacing: -0.5,
+  },
+  newChatButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.primary,
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    marginBottom: 16,
+    gap: 8,
+  },
+  newChatText: {
+    fontSize: 15,
+    fontFamily: 'Urbanist-SemiBold',
+    color: '#fff',
+  },
+  drawerList: {
+    flex: 1,
+  },
+  drawerEmpty: {
+    fontSize: 13,
+    fontFamily: 'Urbanist',
+    color: 'rgba(255,255,255,0.5)',
+    textAlign: 'center',
+    marginTop: 40,
+  },
+  drawerItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    borderRadius: 10,
+    marginBottom: 4,
+    backgroundColor: colors.drawerItem,
+  },
+  drawerItemActive: {
+    backgroundColor: colors.drawerItemActive,
+  },
+  drawerItemText: {
+    flex: 1,
+    fontSize: 14,
+    fontFamily: 'Urbanist',
+    color: '#fff',
+  },
+
+  // ── Header ──
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -331,6 +552,8 @@ const styles = StyleSheet.create({
     letterSpacing: -0.7,
     marginTop: -1,
   },
+
+  // ── Hero ──
   heroSection: {
     alignItems: 'center',
     marginTop: 60,
@@ -362,6 +585,8 @@ const styles = StyleSheet.create({
     marginLeft: 30,
     marginRight: 30,
   },
+
+  // ── Messages ──
   messagesArea: {
     flex: 1,
     width: '100%',
@@ -402,6 +627,25 @@ const styles = StyleSheet.create({
   botMessageText: {
     color: colors.primary,
   },
+
+  // ── Typing indicator ──
+  typingBubble: {
+    paddingVertical: 14,
+    paddingHorizontal: 18,
+  },
+  typingDots: {
+    flexDirection: 'row',
+    gap: 5,
+    alignItems: 'center',
+  },
+  typingDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: colors.primary,
+  },
+
+  // ── Input ──
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -438,7 +682,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   sendButtonIdle: {
-    opacity: 1,
+    opacity: 0.6,
   },
 });
 

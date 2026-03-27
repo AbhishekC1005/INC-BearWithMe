@@ -103,8 +103,16 @@ export interface MoodEntry {
 
 export type ChatRole = 'user' | 'adam';
 
+export interface ChatSession {
+  id: string;
+  title: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface ChatMessage {
   id: string;
+  sessionId: string;
   timestamp: string;
   role: ChatRole;
   content: string;

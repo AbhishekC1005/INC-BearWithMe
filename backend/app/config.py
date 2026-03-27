@@ -10,7 +10,7 @@ class Settings(BaseSettings):
     CORS_ORIGINS: list[str] = ["*"]  # tighten in production
     DEBUG: bool = True
     FIREBASE_CREDENTIALS_PATH: str = "firebase-credentials.json"
-
+    GEMINI_API_KEY: str = ""
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
 
 

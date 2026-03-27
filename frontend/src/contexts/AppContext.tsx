@@ -1,11 +1,11 @@
 // App Context - Global state management
 // Uses backend API as primary store, AsyncStorage as offline fallback.
 
-import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { onAuthStateChanged, signOut as firebaseSignOut } from 'firebase/auth';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
-import { User, MoodEntry, JournalEntry, ChatMessage } from '../types';
+import { User, MoodEntry, JournalEntry, ChatMessage, ChatSession } from '../types';
 import { apiGet, apiPost, apiPatch, apiDelete } from '../services/api';
 import { auth } from '../services/firebaseConfig';
 
@@ -13,7 +13,7 @@ const STORAGE_KEYS = {
   USER: '@bearwithme_user',
   MOOD_ENTRIES: '@bearwithme_moods',
   JOURNAL_ENTRIES: '@bearwithme_journals',
-  CHAT_HISTORY: '@bearwithme_chat',
+  CHAT_SESSIONS: '@bearwithme_chat_sessions',
   ONBOARDED: '@bearwithme_onboarded',
 };
 
@@ -26,7 +26,7 @@ interface AppContextType {
 
   // Mood entries
   moodEntries: MoodEntry[];
-  addMoodEntry: (entry: Omit<MoodEntry, 'id' | 'timestamp'>) => Promise<void>;
+  addMoodEntry: (entry: Omit<MoodEntry, 'id' | 'timestamp' | 'sessionId'>) => Promise<void>;
   getTodayMood: () => MoodEntry | undefined;
 
   // Journal entries
@@ -39,10 +39,18 @@ interface AppContextType {
   deleteJournalEntry: (id: string) => Promise<void>;
   getJournalEntryById: (id: string) => JournalEntry | undefined;
 
-  // Chat
+  // Chat sessions
+  chatSessions: ChatSession[];
+  currentSessionId: string | null;
+  setCurrentSessionId: (id: string | null) => void;
+  createChatSession: (title?: string) => Promise<ChatSession>;
+  deleteChatSession: (id: string) => Promise<void>;
+  refreshChatSessions: () => Promise<void>;
+
+  // Chat messages (per session)
   chatMessages: ChatMessage[];
-  addChatMessage: (message: Omit<ChatMessage, 'id' | 'timestamp'>) => Promise<void>;
-  clearChat: () => Promise<void>;
+  sendChatMessage: (content: string) => Promise<ChatMessage>;
+  loadSessionMessages: (sessionId: string) => Promise<void>;
 
   // Loading state
   isLoading: boolean;
@@ -85,7 +93,6 @@ async function safeRemoveItem(key: string) {
 }
 
 // ── Backend ↔ Frontend type mappers ──────────────────────────
-// Backend uses snake_case; frontend uses camelCase.
 
 function mapUserFromAPI(data: any): User {
   return {
@@ -135,9 +142,19 @@ function mapMoodFromAPI(data: any): MoodEntry {
   };
 }
 
+function mapSessionFromAPI(data: any): ChatSession {
+  return {
+    id: data.id,
+    title: data.title,
+    createdAt: data.created_at,
+    updatedAt: data.updated_at,
+  };
+}
+
 function mapChatFromAPI(data: any): ChatMessage {
   return {
     id: data.id,
+    sessionId: data.session_id,
     timestamp: data.created_at,
     role: data.role,
     content: data.content,
@@ -151,27 +168,30 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [isOnboarded, setIsOnboardedState] = useState(false);
   const [moodEntries, setMoodEntries] = useState<MoodEntry[]>([]);
   const [journalEntries, setJournalEntries] = useState<JournalEntry[]>([]);
+  const [chatSessions, setChatSessions] = useState<ChatSession[]>([]);
+  const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Listen for auth state changes — refresh on sign-in, clear on sign-out
+  // Listen for auth state changes
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       try {
         if (firebaseUser) {
           await refreshFromAPI();
         } else {
-          // User signed out — clear everything
           setUserState(null);
           setMoodEntries([]);
           setJournalEntries([]);
+          setChatSessions([]);
           setChatMessages([]);
+          setCurrentSessionId(null);
           setIsOnboardedState(false);
           await Promise.all([
             safeRemoveItem(STORAGE_KEYS.USER),
             safeRemoveItem(STORAGE_KEYS.MOOD_ENTRIES),
             safeRemoveItem(STORAGE_KEYS.JOURNAL_ENTRIES),
-            safeRemoveItem(STORAGE_KEYS.CHAT_HISTORY),
+            safeRemoveItem(STORAGE_KEYS.CHAT_SESSIONS),
             safeRemoveItem(STORAGE_KEYS.ONBOARDED),
           ]);
         }
@@ -187,18 +207,18 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const loadFromStorage = async () => {
     try {
-      const [userData, moodData, journalData, chatData, onboardedData] = await Promise.all([
+      const [userData, moodData, journalData, sessionsData, onboardedData] = await Promise.all([
         safeGetItem(STORAGE_KEYS.USER),
         safeGetItem(STORAGE_KEYS.MOOD_ENTRIES),
         safeGetItem(STORAGE_KEYS.JOURNAL_ENTRIES),
-        safeGetItem(STORAGE_KEYS.CHAT_HISTORY),
+        safeGetItem(STORAGE_KEYS.CHAT_SESSIONS),
         safeGetItem(STORAGE_KEYS.ONBOARDED),
       ]);
 
       if (userData) setUserState(JSON.parse(userData));
       if (moodData) setMoodEntries(JSON.parse(moodData));
       if (journalData) setJournalEntries(JSON.parse(journalData));
-      if (chatData) setChatMessages(JSON.parse(chatData));
+      if (sessionsData) setChatSessions(JSON.parse(sessionsData));
       if (onboardedData) setIsOnboardedState(JSON.parse(onboardedData));
     } catch {
       // Ignore storage failures
@@ -207,11 +227,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const refreshFromAPI = async () => {
     try {
-      const [userData, journalsData, moodsData, chatData] = await Promise.all([
+      const [userData, journalsData, moodsData, sessionsData] = await Promise.all([
         apiGet<any>('/api/users/me').catch(() => null),
         apiGet<any[]>('/api/journals').catch(() => []),
         apiGet<any[]>('/api/moods').catch(() => []),
-        apiGet<any[]>('/api/chat/messages').catch(() => []),
+        apiGet<any[]>('/api/chat/sessions').catch(() => []),
       ]);
 
       if (userData) {
@@ -228,11 +248,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setMoodEntries(moods);
       await safeSetItem(STORAGE_KEYS.MOOD_ENTRIES, JSON.stringify(moods));
 
-      const messages = (chatData ?? []).map(mapChatFromAPI);
-      setChatMessages(messages);
-      await safeSetItem(STORAGE_KEYS.CHAT_HISTORY, JSON.stringify(messages));
+      const sessions = (sessionsData ?? []).map(mapSessionFromAPI);
+      setChatSessions(sessions);
+      await safeSetItem(STORAGE_KEYS.CHAT_SESSIONS, JSON.stringify(sessions));
     } catch {
-      // If API fails, fall back to storage
       await loadFromStorage();
     }
   };
@@ -268,7 +287,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setMoodEntries(updated);
       await safeSetItem(STORAGE_KEYS.MOOD_ENTRIES, JSON.stringify(updated));
     } catch {
-      // Offline fallback — save locally
       const newEntry: MoodEntry = {
         ...entry,
         id: Date.now().toString(),
@@ -303,7 +321,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setJournalEntries(updated);
       await safeSetItem(STORAGE_KEYS.JOURNAL_ENTRIES, JSON.stringify(updated));
     } catch {
-      // Offline fallback
       const newEntry: JournalEntry = {
         ...entry,
         id: Date.now().toString(),
@@ -328,11 +345,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       if (entry.needFromAdam !== undefined) body.need_from_adam = entry.needFromAdam;
       if (entry.mood !== undefined) body.mood = entry.mood;
       if (entry.moodEmoji !== undefined) body.mood_emoji = entry.moodEmoji;
-
       await apiPatch(`/api/journals/${id}`, body);
-    } catch {
-      // ignore API error — update locally anyway
-    }
+    } catch {}
 
     const updated = journalEntries.map((j) => (j.id === id ? { ...j, ...entry } : j));
     setJournalEntries(updated);
@@ -342,10 +356,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const deleteJournalEntry = async (id: string) => {
     try {
       await apiDelete(`/api/journals/${id}`);
-    } catch {
-      // ignore API error
-    }
-
+    } catch {}
     const updated = journalEntries.filter((j) => j.id !== id);
     setJournalEntries(updated);
     await safeSetItem(STORAGE_KEYS.JOURNAL_ENTRIES, JSON.stringify(updated));
@@ -355,64 +366,111 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return journalEntries.find((j) => j.id === id);
   };
 
-  // ── Chat ─────────────────────────────────────────
+  // ── Chat Sessions ───────────────────────────────
 
-  const addChatMessage = async (message: Omit<ChatMessage, 'id' | 'timestamp'>) => {
+  const refreshChatSessions = async () => {
     try {
-      const data = await apiPost<any>('/api/chat/messages', {
-        role: message.role,
-        content: message.content,
-      });
-      const mapped = mapChatFromAPI(data);
-      const updated = [...chatMessages, mapped];
-      setChatMessages(updated);
-      await safeSetItem(STORAGE_KEYS.CHAT_HISTORY, JSON.stringify(updated));
-    } catch {
-      // Offline fallback
-      const newMessage: ChatMessage = {
-        ...message,
-        id: Date.now().toString(),
-        timestamp: new Date().toISOString(),
-      };
-      const updated = [...chatMessages, newMessage];
-      setChatMessages(updated);
-      await safeSetItem(STORAGE_KEYS.CHAT_HISTORY, JSON.stringify(updated));
-    }
+      const data = await apiGet<any[]>('/api/chat/sessions');
+      const sessions = (data ?? []).map(mapSessionFromAPI);
+      setChatSessions(sessions);
+      await safeSetItem(STORAGE_KEYS.CHAT_SESSIONS, JSON.stringify(sessions));
+    } catch {}
   };
 
-  const clearChat = async () => {
-    try {
-      await apiDelete('/api/chat/messages');
-    } catch {
-      // ignore API error
-    }
+  const createChatSession = async (title?: string): Promise<ChatSession> => {
+    const data = await apiPost<any>('/api/chat/sessions', { title: title || 'New Chat' });
+    const session = mapSessionFromAPI(data);
+    setChatSessions((prev) => [session, ...prev]);
+    setCurrentSessionId(session.id);
     setChatMessages([]);
-    await safeRemoveItem(STORAGE_KEYS.CHAT_HISTORY);
+    return session;
   };
+
+  const deleteChatSession = async (id: string) => {
+    try {
+      await apiDelete(`/api/chat/sessions/${id}`);
+    } catch {}
+    setChatSessions((prev) => prev.filter((s) => s.id !== id));
+    if (currentSessionId === id) {
+      setCurrentSessionId(null);
+      setChatMessages([]);
+    }
+  };
+
+  // ── Chat Messages (per session) ─────────────────
+
+  const loadSessionMessages = async (sessionId: string) => {
+    setCurrentSessionId(sessionId);
+    try {
+      const data = await apiGet<any[]>(`/api/chat/sessions/${sessionId}/messages`);
+      const msgs = (data ?? []).map(mapChatFromAPI);
+      setChatMessages(msgs);
+    } catch {
+      setChatMessages([]);
+    }
+  };
+
+  const sendChatMessage = async (content: string): Promise<ChatMessage> => {
+    if (!currentSessionId) {
+      throw new Error('No active chat session');
+    }
+
+    // Optimistically add user message
+    const tempUserMsg: ChatMessage = {
+      id: `temp-${Date.now()}`,
+      sessionId: currentSessionId,
+      role: 'user',
+      content,
+      timestamp: new Date().toISOString(),
+    };
+    setChatMessages((prev) => [...prev, tempUserMsg]);
+
+    // Call API — this sends user msg + gets AI reply back
+    const data = await apiPost<any>(
+      `/api/chat/sessions/${currentSessionId}/messages`,
+      { content },
+    );
+    const aiReply = mapChatFromAPI(data);
+
+    // Replace temp message with real one and add AI reply
+    // Reload all messages to get proper IDs
+    try {
+      const allData = await apiGet<any[]>(
+        `/api/chat/sessions/${currentSessionId}/messages`,
+      );
+      const allMsgs = (allData ?? []).map(mapChatFromAPI);
+      setChatMessages(allMsgs);
+    } catch {
+      setChatMessages((prev) => [...prev.filter((m) => m.id !== tempUserMsg.id), aiReply]);
+    }
+
+    // Refresh sessions list to pick up title updates
+    refreshChatSessions();
+
+    return aiReply;
+  };
+
+  // ── Sign Out ────────────────────────────────────
 
   const signOut = async () => {
     try {
-      // Clear Google session first so account picker is forced next time
       try {
         await GoogleSignin.signOut();
-      } catch {
-        // Google SDK may not be initialized if user never used Google sign-in
-      }
+      } catch {}
       await firebaseSignOut(auth);
-    } catch {
-      // Force-clear local state even if sign-out calls fail
-    }
-    // Always clear local state regardless of sign-out success
+    } catch {}
     setUserState(null);
     setMoodEntries([]);
     setJournalEntries([]);
+    setChatSessions([]);
     setChatMessages([]);
+    setCurrentSessionId(null);
     setIsOnboardedState(false);
     await Promise.all([
       safeRemoveItem(STORAGE_KEYS.USER),
       safeRemoveItem(STORAGE_KEYS.MOOD_ENTRIES),
       safeRemoveItem(STORAGE_KEYS.JOURNAL_ENTRIES),
-      safeRemoveItem(STORAGE_KEYS.CHAT_HISTORY),
+      safeRemoveItem(STORAGE_KEYS.CHAT_SESSIONS),
       safeRemoveItem(STORAGE_KEYS.ONBOARDED),
     ]);
   };
@@ -432,9 +490,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
         updateJournalEntry,
         deleteJournalEntry,
         getJournalEntryById,
+        chatSessions,
+        currentSessionId,
+        setCurrentSessionId,
+        createChatSession,
+        deleteChatSession,
+        refreshChatSessions,
         chatMessages,
-        addChatMessage,
-        clearChat,
+        sendChatMessage,
+        loadSessionMessages,
         isLoading,
         refreshFromAPI,
         signOut,
