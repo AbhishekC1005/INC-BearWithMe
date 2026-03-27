@@ -31,8 +31,7 @@ import { useApp } from '../src/contexts/AppContext';
 
 // Configure Google Sign-In with the Web Client ID (needed for Firebase)
 GoogleSignin.configure({
-  webClientId:
-    '585485707727-flc0u1r1h7oldsq94r7pu94emalp2hvs.apps.googleusercontent.com',
+  webClientId: '585485707727-flc0u1r1h7oldsq94r7pu94emalp2hvs.apps.googleusercontent.com',
 });
 
 const LoginScreen: React.FC = () => {

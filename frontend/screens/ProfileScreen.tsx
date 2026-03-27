@@ -162,9 +162,9 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 36,
-    fontFamily: 'Urbanist',
+    fontFamily: 'Urbanist-Medium',
     color: colors.textSecondary,
-    fontWeight: '700',
+    fontWeight: '100',
   },
   subtitle: {
     fontSize: 14,

@@ -30,7 +30,10 @@ interface AppContextType {
   // Journal entries
   journalEntries: JournalEntry[];
   addJournalEntry: (entry: Omit<JournalEntry, 'id' | 'timestamp'>) => Promise<void>;
-  updateJournalEntry: (id: string, entry: Partial<Omit<JournalEntry, 'id' | 'timestamp'>>) => Promise<void>;
+  updateJournalEntry: (
+    id: string,
+    entry: Partial<Omit<JournalEntry, 'id' | 'timestamp'>>
+  ) => Promise<void>;
   deleteJournalEntry: (id: string) => Promise<void>;
   getJournalEntryById: (id: string) => JournalEntry | undefined;
 
@@ -263,7 +266,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const getTodayMood = () => {
     const today = new Date().toDateString();
-    return moodEntries.find(entry => new Date(entry.timestamp).toDateString() === today);
+    return moodEntries.find((entry) => new Date(entry.timestamp).toDateString() === today);
   };
 
   // ── Journals ─────────────────────────────────────
@@ -296,7 +299,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const updateJournalEntry = async (id: string, entry: Partial<Omit<JournalEntry, 'id' | 'timestamp'>>) => {
+  const updateJournalEntry = async (
+    id: string,
+    entry: Partial<Omit<JournalEntry, 'id' | 'timestamp'>>
+  ) => {
     try {
       const body: any = {};
       if (entry.title !== undefined) body.title = entry.title;
@@ -312,9 +318,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       // ignore API error — update locally anyway
     }
 
-    const updated = journalEntries.map(j =>
-      j.id === id ? { ...j, ...entry } : j
-    );
+    const updated = journalEntries.map((j) => (j.id === id ? { ...j, ...entry } : j));
     setJournalEntries(updated);
     await safeSetItem(STORAGE_KEYS.JOURNAL_ENTRIES, JSON.stringify(updated));
   };
@@ -326,13 +330,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
       // ignore API error
     }
 
-    const updated = journalEntries.filter(j => j.id !== id);
+    const updated = journalEntries.filter((j) => j.id !== id);
     setJournalEntries(updated);
     await safeSetItem(STORAGE_KEYS.JOURNAL_ENTRIES, JSON.stringify(updated));
   };
 
   const getJournalEntryById = (id: string) => {
-    return journalEntries.find(j => j.id === id);
+    return journalEntries.find((j) => j.id === id);
   };
 
   // ── Chat ─────────────────────────────────────────

@@ -11,6 +11,7 @@ import {
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useApp } from '../src/contexts/AppContext';
+import { Svg, Path, Rect } from 'react-native-svg';
 
 // Design tokens
 const colors = {
@@ -156,13 +157,21 @@ const HomeScreen: React.FC = () => {
         </View>
 
         <View style={styles.notificationContainer}>
-          <Image
-            source={require('../assets/Notification.png')}
-            style={styles.notificationIcon}
-            resizeMode="contain"
-          />
-          <View style={styles.notificationBadge}>
-            <Text style={styles.notificationText}>1</Text>
+          <View style={styles.notificationIcon}>
+            <Svg width={40} height={40} viewBox="0 0 40 40" fill="none">
+              <Path
+                d="M22.5533 24.9642V25.9571C22.5533 27.6022 21.2197 28.9358 19.5746 28.9358C17.9295 28.9358 16.5959 27.6022 16.5959 25.9571V24.9642M22.5533 24.9642H16.5959M22.5533 24.9642H26.1184C26.4982 24.9642 26.689 24.9642 26.8428 24.9123C27.1366 24.8132 27.3664 24.5826 27.4655 24.2888C27.5176 24.1344 27.5176 23.943 27.5176 23.5602C27.5176 23.3926 27.5174 23.3089 27.5043 23.229C27.4795 23.0781 27.421 22.935 27.3318 22.8108C27.2846 22.7451 27.2247 22.6852 27.1066 22.5671L26.7199 22.1804C26.5951 22.0556 26.525 21.8863 26.525 21.7098V18.0138C26.525 14.1753 23.4132 11.0635 19.5746 11.0635C15.736 11.0635 12.6243 14.1753 12.6243 18.0138V21.7099C12.6243 21.8863 12.554 22.0556 12.4292 22.1804L12.0425 22.5671C11.924 22.6856 11.8647 22.7451 11.8175 22.8108C11.7283 22.9351 11.6692 23.0781 11.6445 23.229C11.6313 23.3089 11.6313 23.3926 11.6313 23.5602C11.6313 23.943 11.6313 24.1344 11.6834 24.2888C11.7825 24.5825 12.0134 24.8132 12.3072 24.9123C12.461 24.9642 12.6511 24.9642 13.0309 24.9642H16.5959"
+                stroke="#302F2F"
+                strokeWidth={2}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+              <Rect x={23} y={8} width={12} height={12} rx={6} fill="#7857E1" />
+              <Path
+                d="M28.96 17V12.665H28.3L28.5475 11.75H29.875V17H28.96Z"
+                fill="white"
+              />
+            </Svg>
           </View>
         </View>
       </View>
@@ -409,8 +418,15 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   notificationIcon: {
-    width: 30,
-    height: 30,
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000000',
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 1 },
+    elevation: 3,
   },
   notificationBadge: {
     position: 'absolute',
