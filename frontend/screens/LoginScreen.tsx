@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -7,82 +7,223 @@ import {
   StyleSheet,
   StatusBar,
   Image,
+  Alert,
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  ScrollView,
+  Platform,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import {
+  signInWithEmailAndPassword,
+  signInWithCredential,
+  GoogleAuthProvider,
+} from 'firebase/auth';
+import {
+  GoogleSignin,
+  isErrorWithCode,
+  statusCodes,
+} from '@react-native-google-signin/google-signin';
+import { auth } from '../src/services/firebaseConfig';
+import { apiPost } from '../src/services/api';
+import { useApp } from '../src/contexts/AppContext';
+
+// Configure Google Sign-In with the Web Client ID (needed for Firebase)
+GoogleSignin.configure({
+  webClientId: '585485707727-flc0u1r1h7oldsq94r7pu94emalp2hvs.apps.googleusercontent.com',
+});
 
 const LoginScreen: React.FC = () => {
   const navigation = useNavigation<any>();
+  const { setUser, refreshFromAPI } = useApp();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const handleGoogleSignIn = async () => {
+    setLoading(true);
+    try {
+      await GoogleSignin.hasPlayServices();
+      const response = await GoogleSignin.signIn();
+      const idToken = response.data?.idToken;
+      if (!idToken) throw new Error('No ID token returned from Google');
+
+      // Sign in to Firebase with the Google credential
+      const credential = GoogleAuthProvider.credential(idToken);
+      const cred = await signInWithCredential(auth, credential);
+      const firebaseUser = cred.user;
+
+      // Upsert user on backend
+      try {
+        await apiPost('/api/users', {
+          name: firebaseUser.displayName || firebaseUser.email || 'User',
+          email: firebaseUser.email,
+          firebase_uid: firebaseUser.uid,
+        });
+      } catch {
+        // User might already exist
+      }
+
+      await refreshFromAPI();
+      navigation.reset({ index: 0, routes: [{ name: 'MainTabs' }] });
+    } catch (error: any) {
+      Alert.alert('Google Sign-In failed', error?.message || 'Something went wrong.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleLogin = async () => {
+    if (!email.trim() || !password.trim()) {
+      Alert.alert('Missing fields', 'Please enter your email and password.');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      // 1. Sign in with Firebase
+      const cred = await signInWithEmailAndPassword(auth, email.trim(), password);
+      const firebaseUser = cred.user;
+
+      // 2. Upsert user on backend
+      try {
+        await apiPost('/api/users', {
+          name: firebaseUser.displayName || firebaseUser.email || 'User',
+          email: firebaseUser.email,
+          firebase_uid: firebaseUser.uid,
+        });
+      } catch {
+        // User might already exist — that's fine
+      }
+
+      // 3. Sync data from API
+      await refreshFromAPI();
+
+      // 4. Navigate to main app
+      navigation.reset({ index: 0, routes: [{ name: 'MainTabs' }] });
+    } catch (error: any) {
+      let msg = 'Something went wrong. Please try again.';
+      if (error?.code === 'auth/user-not-found') msg = 'No account found with this email.';
+      else if (error?.code === 'auth/wrong-password') msg = 'Incorrect password.';
+      else if (error?.code === 'auth/invalid-email') msg = 'Invalid email address.';
+      else if (error?.code === 'auth/invalid-credential') msg = 'Invalid email or password.';
+      Alert.alert('Login failed', msg);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#f3eded" />
-      <View style={styles.content}>
-        {/* Logo Section */}
-        <View style={styles.logoContainer}>
-          <Text style={styles.logoText}>BearWithMe</Text>
-          <Text style={styles.taglineText}>Your Wiser Companion</Text>
-        </View>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
+        <ScrollView
+          contentContainerStyle={{ flexGrow: 1 }}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.content}>
+            {/* Logo Section */}
+            <View style={styles.logoContainer}>
+              <Text style={styles.logoText}>BearWithMe</Text>
+              <Text style={styles.taglineText}>Your Wiser Companion</Text>
+            </View>
 
-        <Image
-          source={require('../assets/login_bear.png')}
-          style={styles.bearImage}
-          resizeMode="contain"
-        />
-
-        <View style={styles.formGroup}>
-          {/* Login Title */}
-          <Text style={styles.loginTitle}>Login</Text>
-
-          {/* Email Input */}
-          <View style={styles.inputContainer}>
-            <TextInput
-              style={styles.input}
-              placeholder="Enter your email"
-              placeholderTextColor="#7857e166"
-              keyboardType="email-address"
-              autoCapitalize="none"
-            />
-          </View>
-
-          {/* Continue Button */}
-          <TouchableOpacity
-            style={styles.continueButton}
-            onPress={() => navigation.navigate('MainTabs', { screen: 'Home' })}
-          >
-            <Text style={styles.continueButtonText}>Continue</Text>
-          </TouchableOpacity>
-
-          {/* Divider */}
-          <View style={styles.dividerContainer}>
-            <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>or</Text>
-            <View style={styles.dividerLine} />
-          </View>
-
-          {/* Google Login Button */}
-          <TouchableOpacity
-            style={styles.googleButton}
-            onPress={() => navigation.navigate('MainTabs', { screen: 'Home' })}
-          >
             <Image
-              source={require('../assets/google_icon.png')}
-              style={styles.googleIcon}
+              source={require('../assets/login_bear.png')}
+              style={styles.bearImage}
               resizeMode="contain"
             />
-            <Text style={styles.googleButtonText}>Continue with Google</Text>
-          </TouchableOpacity>
 
-          {/* Sign Up Link */}
-          <TouchableOpacity onPress={() => navigation.navigate('SignUp')}>
-            <Text style={styles.signupText}>
-              Don't have an account? <Text style={{fontFamily: "Urbanist-SemiBold" ,textDecorationLine: 'underline', fontWeight:'normal', color: "#7857e1"}}>
-               Sign up
-            </Text>
-            </Text>
-          </TouchableOpacity>
-        </View>
-      </View>
+            <View style={styles.formGroup}>
+              {/* Login Title */}
+              <Text style={styles.loginTitle}>Login</Text>
+
+              {/* Email Input */}
+              <View style={styles.inputContainer}>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Enter your email"
+                  placeholderTextColor="#7857e166"
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  value={email}
+                  onChangeText={setEmail}
+                  editable={!loading}
+                />
+              </View>
+
+              {/* Password Input */}
+              <View style={styles.inputContainer}>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Enter your password"
+                  placeholderTextColor="#7857e166"
+                  secureTextEntry
+                  value={password}
+                  onChangeText={setPassword}
+                  editable={!loading}
+                />
+              </View>
+
+              {/* Continue Button */}
+              <TouchableOpacity
+                style={[styles.continueButton, loading && { opacity: 0.7 }]}
+                onPress={handleLogin}
+                disabled={loading}
+              >
+                {loading ? (
+                  <ActivityIndicator color="#ffffff" />
+                ) : (
+                  <Text style={styles.continueButtonText}>Continue</Text>
+                )}
+              </TouchableOpacity>
+
+              {/* Divider */}
+              <View style={styles.dividerContainer}>
+                <View style={styles.dividerLine} />
+                <Text style={styles.dividerText}>or</Text>
+                <View style={styles.dividerLine} />
+              </View>
+
+              {/* Google Login Button */}
+              <TouchableOpacity
+                style={styles.googleButton}
+                onPress={handleGoogleSignIn}
+                disabled={loading}
+              >
+                <Image
+                  source={require('../assets/google_icon.png')}
+                  style={styles.googleIcon}
+                  resizeMode="contain"
+                />
+                <Text style={styles.googleButtonText}>Continue with Google</Text>
+              </TouchableOpacity>
+
+              {/* Sign Up Link */}
+              <TouchableOpacity onPress={() => navigation.navigate('SignUp')}>
+                <Text style={styles.signupText}>
+                  Don't have an account?{' '}
+                  <Text
+                    style={{
+                      fontFamily: 'Urbanist-SemiBold',
+                      textDecorationLine: 'underline',
+                      fontWeight: 'normal',
+                      color: '#7857e1',
+                    }}
+                  >
+                    Sign up
+                  </Text>
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 };
@@ -104,8 +245,8 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   bearImage: {
-    width: 360,
-    height: 360,
+    width: 300,
+    height: 300,
     marginTop: 18,
     marginBottom: 10,
   },
@@ -126,7 +267,7 @@ const styles = StyleSheet.create({
     marginTop: 0,
   },
   loginTitle: {
-    fontWeight:'normal',
+    fontWeight: 'normal',
     fontSize: 28,
     fontFamily: 'Urbanist-SemiBold',
     color: '#7857e1',
@@ -205,7 +346,7 @@ const styles = StyleSheet.create({
   signupText: {
     fontSize: 12,
     fontFamily: 'Urbanist',
-    fontWeight: "normal",
+    fontWeight: 'normal',
     color: '#000000',
     textAlign: 'center',
     marginTop: 14,

@@ -153,9 +153,9 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 44,
-    fontFamily: 'Urbanist',
+    fontFamily: 'Urbanist-Medium',
     color: colors.primary,
-    fontWeight: '500',
+    fontWeight: '100',
     paddingHorizontal: 16,
     marginTop: 25,
     marginBottom: 10,

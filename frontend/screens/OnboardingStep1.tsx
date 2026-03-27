@@ -8,15 +8,18 @@ import {
   StatusBar,
   Image,
   ScrollView,
+  Modal,
+  Platform,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useApp } from '../src/contexts/AppContext';
+import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
+import { Svg, Path, Rect, Line } from 'react-native-svg';
 
 const OnboardingStep1: React.FC = () => {
   const genderOptions = ['Male', 'Female', 'Other'];
   const chatStyleOptions = [
-    'Listen & support me',
+    'Listen and Support Me',
     'Help me solve this',
     'Challenge my thinking',
     'Keep me calm',
@@ -24,20 +27,19 @@ const OnboardingStep1: React.FC = () => {
   ];
 
   const [nickname, setNickname] = useState('');
-  const [birthday, setBirthday] = useState('');
+  const [birthday, setBirthday] = useState<Date | null>(null);
   const [gender, setGender] = useState('');
   const [chatStyle, setChatStyle] = useState('');
   const [showGenderOptions, setShowGenderOptions] = useState(false);
   const [showChatStyleOptions, setShowChatStyleOptions] = useState(false);
+  const [showDatePicker, setShowDatePicker] = useState(false);
 
   const navigation = useNavigation<any>();
-  const { setUser } = useApp();
 
   const handleContinue = () => {
-    setUser({ name: nickname });
     navigation.navigate('OnboardingStep2', {
       nickname,
-      birthday,
+      birthday: birthday ? birthday.toISOString().split('T')[0] : '',
       gender,
       chatStyle,
     });
@@ -46,6 +48,84 @@ const OnboardingStep1: React.FC = () => {
   const handleBack = () => {
     navigation.goBack();
   };
+
+  const formatDate = (date: Date | null): string => {
+    if (!date) return 'Your birthday!';
+    const options: Intl.DateTimeFormatOptions = { year: 'numeric', month: 'short', day: 'numeric' };
+    return date.toLocaleDateString('en-US', options);
+  };
+
+  const handleDateChange = (event: DateTimePickerEvent, selectedDate?: Date) => {
+    if (event.type === 'dismissed') {
+      setShowDatePicker(false);
+      return;
+    }
+
+    const nextDate = selectedDate || birthday || new Date();
+    setBirthday(nextDate);
+
+    if (Platform.OS !== 'ios') {
+      setShowDatePicker(false);
+    }
+  };
+
+  const DropdownIcon = () => (
+    <Svg width={24} height={24} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M19 9L12 16L5 9"
+        stroke="#7857E1"
+        strokeWidth={2}
+        strokeOpacity={0.4}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+
+  const CalendarIcon = () => (
+    <Svg width={22} height={22} viewBox="0 0 24 24" fill="none">
+      <Rect
+        x="3"
+        y="4"
+        width="18"
+        height="17"
+        rx="3"
+        stroke="#7857E1"
+        strokeOpacity={0.4}
+        strokeWidth={2}
+      />
+      <Line
+        x1="8"
+        y1="2.5"
+        x2="8"
+        y2="6"
+        stroke="#7857E1"
+        strokeOpacity={0.4}
+        strokeWidth={2}
+        strokeLinecap="round"
+      />
+      <Line
+        x1="16"
+        y1="2.5"
+        x2="16"
+        y2="6"
+        stroke="#7857E1"
+        strokeOpacity={0.4}
+        strokeWidth={2}
+        strokeLinecap="round"
+      />
+      <Line
+        x1="3"
+        y1="9"
+        x2="21"
+        y2="9"
+        stroke="#7857E1"
+        strokeOpacity={0.4}
+        strokeWidth={2}
+        strokeLinecap="round"
+      />
+    </Svg>
+  );
 
   return (
     <SafeAreaView style={styles.container}>
@@ -98,15 +178,21 @@ const OnboardingStep1: React.FC = () => {
           {/* Birthday */}
           <View style={styles.inputGroup}>
             <Text style={styles.inputLabel}>What's your birth date?</Text>
-            <View style={styles.inputContainer}>
-              <TextInput
-                style={styles.input}
-                placeholder="Your birthday!"
-                placeholderTextColor="#7857e166"
-                value={birthday}
-                onChangeText={setBirthday}
-              />
-            </View>
+            <TouchableOpacity
+              style={styles.inputContainer}
+              onPress={() => {
+                setShowDatePicker(true);
+                setShowGenderOptions(false);
+                setShowChatStyleOptions(false);
+              }}
+            >
+              <Text style={[styles.input, !birthday && styles.placeholder]}>
+                {formatDate(birthday)}
+              </Text>
+              <View style={styles.inputIcon}>
+                <CalendarIcon />
+              </View>
+            </TouchableOpacity>
           </View>
 
           {/* Gender */}
@@ -122,22 +208,27 @@ const OnboardingStep1: React.FC = () => {
               <Text style={[styles.input, !gender && styles.placeholder]}>
                 {gender || 'Select your gender'}
               </Text>
+              <View style={styles.inputIcon}>
+                <DropdownIcon />
+              </View>
             </TouchableOpacity>
 
             {showGenderOptions && (
               <View style={styles.dropdownOptionsContainer}>
-                {genderOptions.map((option) => (
-                  <TouchableOpacity
-                    key={option}
-                    style={styles.dropdownOption}
-                    onPress={() => {
-                      setGender(option);
-                      setShowGenderOptions(false);
-                    }}
-                  >
-                    <Text style={styles.dropdownOptionText}>{option}</Text>
-                  </TouchableOpacity>
-                ))}
+                <ScrollView scrollEnabled={true} nestedScrollEnabled={true}>
+                  {genderOptions.map((option) => (
+                    <TouchableOpacity
+                      key={option}
+                      style={styles.dropdownOption}
+                      onPress={() => {
+                        setGender(option);
+                        setShowGenderOptions(false);
+                      }}
+                    >
+                      <Text style={styles.dropdownOptionText}>{option}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
               </View>
             )}
           </View>
@@ -155,22 +246,27 @@ const OnboardingStep1: React.FC = () => {
               <Text style={[styles.input, !chatStyle && styles.placeholder]}>
                 {chatStyle || 'Select a type'}
               </Text>
+              <View style={styles.inputIcon}>
+                <DropdownIcon />
+              </View>
             </TouchableOpacity>
 
             {showChatStyleOptions && (
               <View style={styles.dropdownOptionsContainer}>
-                {chatStyleOptions.map((option) => (
-                  <TouchableOpacity
-                    key={option}
-                    style={styles.dropdownOption}
-                    onPress={() => {
-                      setChatStyle(option);
-                      setShowChatStyleOptions(false);
-                    }}
-                  >
-                    <Text style={styles.dropdownOptionText}>{option}</Text>
-                  </TouchableOpacity>
-                ))}
+                <ScrollView scrollEnabled={true} nestedScrollEnabled={true}>
+                  {chatStyleOptions.map((option) => (
+                    <TouchableOpacity
+                      key={option}
+                      style={styles.dropdownOption}
+                      onPress={() => {
+                        setChatStyle(option);
+                        setShowChatStyleOptions(false);
+                      }}
+                    >
+                      <Text style={styles.dropdownOptionText}>{option}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
               </View>
             )}
           </View>
@@ -181,6 +277,37 @@ const OnboardingStep1: React.FC = () => {
       <TouchableOpacity style={styles.continueButton} onPress={handleContinue}>
         <Text style={styles.continueButtonText}>Continue</Text>
       </TouchableOpacity>
+
+      {/* Date Picker Modal */}
+      <Modal
+        transparent
+        animationType="slide"
+        visible={showDatePicker}
+        onRequestClose={() => setShowDatePicker(false)}
+      >
+        <View style={styles.datePickerContainer}>
+          <View style={styles.datePickerContent}>
+            <View style={styles.datePickerHeader}>
+              <TouchableOpacity onPress={() => setShowDatePicker(false)}>
+                <Text style={styles.datePickerCancel}>Cancel</Text>
+              </TouchableOpacity>
+              <Text style={styles.datePickerTitle}>Select Date</Text>
+              <TouchableOpacity onPress={() => setShowDatePicker(false)}>
+                <Text style={styles.datePickerDone}>Done</Text>
+              </TouchableOpacity>
+            </View>
+            <DateTimePicker
+              value={birthday || new Date()}
+              onChange={handleDateChange}
+              mode="date"
+              maximumDate={new Date()}
+              display="spinner"
+              style={styles.datePicker}
+              textColor={Platform.OS === 'ios' ? '#7857e1' : undefined}
+            />
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -207,20 +334,20 @@ const styles = StyleSheet.create({
   },
 
   backIcon: {
-    marginTop:22,
+    marginTop: 22,
     width: 24,
     height: 24,
-    marginBottom:15,
+    marginBottom: 15,
   },
 
   stepText: {
     marginLeft: 100,
-    marginTop:22,
+    marginTop: 22,
     fontSize: 22,
     fontFamily: 'Urbanist-SemiBold',
     color: '#7857e1',
     fontWeight: '600',
-    marginBottom:15,
+    marginBottom: 15,
   },
 
   progressBarContainer: {
@@ -230,7 +357,7 @@ const styles = StyleSheet.create({
     marginBottom: 18,
   },
   progressBarFill: {
-    width: '2%',
+    width: '33%',
     height: 6,
     backgroundColor: '#7857e1',
     borderRadius: 6,
@@ -242,7 +369,7 @@ const styles = StyleSheet.create({
     color: '#7857e1',
     marginBottom: 24,
     lineHeight: 26,
-    letterSpacing:-0.5,
+    letterSpacing: -0.5,
   },
 
   inputsContainer: {
@@ -265,11 +392,14 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#7857e1',
     borderRadius: 10,
-    justifyContent: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: 16,
   },
 
   input: {
+    flex: 1,
     fontSize: 15,
     fontFamily: 'Urbanist',
     color: '#7857e1',
@@ -279,24 +409,32 @@ const styles = StyleSheet.create({
     color: '#b6a7d8',
   },
 
+  inputIcon: {
+    marginLeft: 8,
+  },
+
   dropdownOptionsContainer: {
     marginTop: 8,
-    height: 48,
     backgroundColor: '#ffffff',
     borderRadius: 12,
     borderWidth: 1,
     borderColor: '#d9cfee',
+    maxHeight: 200,
+    padding: 8,
   },
 
   dropdownOption: {
-    padding: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0eff5',
   },
 
   dropdownOptionText: {
     fontSize: 15,
-    height: 48,
     fontFamily: 'Urbanist',
     color: '#4f3f77',
+    lineHeight: 20,
   },
 
   continueButton: {
@@ -313,6 +451,54 @@ const styles = StyleSheet.create({
     fontFamily: 'Urbanist-SemiBold',
     color: '#ffffff',
     fontWeight: '100',
+  },
+
+  /* Date Picker Styles */
+  datePickerContainer: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+
+  datePickerContent: {
+    backgroundColor: '#f3eded',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingBottom: 12,
+  },
+
+  datePickerHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e6ddf6',
+  },
+
+  datePickerTitle: {
+    fontSize: 18,
+    fontFamily: 'Urbanist-SemiBold',
+    color: '#7857e1',
+    fontWeight: '600',
+  },
+
+  datePickerCancel: {
+    fontSize: 16,
+    fontFamily: 'Urbanist',
+    color: '#b6a7d8',
+  },
+
+  datePickerDone: {
+    fontSize: 16,
+    fontFamily: 'Urbanist-SemiBold',
+    color: '#7857e1',
+    fontWeight: '600',
+  },
+
+  datePicker: {
+    backgroundColor: '#f3eded',
   },
 });
 

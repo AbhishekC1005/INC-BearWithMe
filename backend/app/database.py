@@ -1,37 +1,23 @@
-"""Motor (async MongoDB driver) + Beanie ODM initialisation."""
+"""Async SQLAlchemy engine and session factory."""
 
-from motor.motor_asyncio import AsyncIOMotorClient
-from beanie import init_beanie
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from app.config import settings
 
-# Will be set at startup
-client: AsyncIOMotorClient | None = None
+engine = create_async_engine(settings.DATABASE_URL, echo=settings.DEBUG)
+
+async_session = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
 
-async def init_db() -> None:
-    """Connect to MongoDB and initialise Beanie document models."""
-    global client
-
-    client = AsyncIOMotorClient(settings.MONGO_URI)
-    db = client[settings.MONGO_DB_NAME]
-
-    # Import all document models so Beanie can discover them
-    from app.models.user import User
-    from app.models.journal import JournalEntry
-    from app.models.mood import MoodEntry
-    from app.models.chat import ChatSession, ChatMessage
-    from app.models.pattern import Pattern
-
-    await init_beanie(
-        database=db,
-        document_models=[User, JournalEntry, MoodEntry, ChatSession, ChatMessage, Pattern],
-    )
+async def get_db():
+    """FastAPI dependency that yields an async DB session."""
+    async with async_session() as session:
+        yield session
 
 
-async def close_db() -> None:
-    """Close the Motor client."""
-    global client
-    if client:
-        client.close()
-        client = None
+async def init_db():
+    """Create all tables. Called once at startup via lifespan."""
+    from app.models import Base  # noqa: F811
+
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
