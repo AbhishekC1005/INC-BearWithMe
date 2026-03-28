@@ -68,6 +68,9 @@ const OnboardingStep3: React.FC = () => {
     // Step 3 — stressors
     profileData.stressors = selectedStressors;
 
+    // Mark onboarding complete on the backend too
+    profileData.is_onboarded = true;
+
     try {
       await apiPatch('/api/users/me', profileData);
       await refreshFromAPI();

@@ -1,6 +1,7 @@
 // Centralised API client — attaches Firebase auth token to every request.
 
 import { auth } from './firebaseConfig';
+import { onAuthStateChanged } from 'firebase/auth';
 import { Platform } from 'react-native';
 import Constants from 'expo-constants';
 
@@ -28,14 +29,46 @@ const API_BASE_URL = getBaseUrl();
 
 // ── Helpers ──────────────────────────────────────────────────
 
+/**
+ * Wait for Firebase auth.currentUser to become available.
+ * After signIn, the auth state listener fires asynchronously so
+ * currentUser may not be set immediately.
+ */
+function waitForCurrentUser(timeoutMs = 5000): Promise<typeof auth.currentUser> {
+  if (auth.currentUser) return Promise.resolve(auth.currentUser);
+
+  return new Promise((resolve) => {
+    const timer = setTimeout(() => {
+      unsubscribe();
+      resolve(auth.currentUser);
+    }, timeoutMs);
+
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        clearTimeout(timer);
+        unsubscribe();
+        resolve(user);
+      }
+    });
+  });
+}
+
 async function getAuthHeaders(): Promise<Record<string, string>> {
-  const user = auth.currentUser;
+  // First try direct access (fast path)
+  let user = auth.currentUser;
+
+  // If not available yet, wait for auth state to settle
+  if (!user) {
+    user = await waitForCurrentUser(5000);
+  }
+
   if (!user) return {};
 
   try {
     const token = await user.getIdToken();
     return { Authorization: `Bearer ${token}` };
-  } catch {
+  } catch (e) {
+    console.warn('Failed to get Firebase ID token:', e);
     return {};
   }
 }

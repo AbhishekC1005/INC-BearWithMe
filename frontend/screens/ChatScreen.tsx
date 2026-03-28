@@ -225,7 +225,17 @@ const ChatScreen: React.FC = () => {
     try {
       await sendChatMessage(trimmed);
     } catch (e: any) {
-      Alert.alert('Error', 'Adam could not respond. Please try again.');
+      const errMsg = e?.message || 'Unknown error';
+      // Show a user-friendly message but include error details for debugging
+      if (errMsg.includes('502') || errMsg.includes('AI service')) {
+        Alert.alert('AI Unavailable', 'Adam is having trouble right now. Please try again in a moment.');
+      } else if (errMsg.includes('401')) {
+        Alert.alert('Session Expired', 'Your session has expired. Please restart the app.');
+      } else if (errMsg.includes('404')) {
+        Alert.alert('Error', 'Chat session not found. Please start a new chat.');
+      } else {
+        Alert.alert('Error', `Adam could not respond: ${errMsg}`);
+      }
     } finally {
       setIsThinking(false);
       setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 100);

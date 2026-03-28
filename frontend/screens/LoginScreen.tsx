@@ -42,20 +42,41 @@ const LoginScreen: React.FC = () => {
 
   /**
    * After Firebase auth succeeds, validate the user exists in our DB.
-   * Returns the check result or null if the user should be blocked.
+   * Retries up to 3 times with increasing delays to handle the race
+   * condition where Firebase currentUser isn't set yet when the API
+   * helper tries to read the token.
    */
   const validateUserExists = async (): Promise<{
     exists: boolean;
     is_onboarded: boolean;
-  } | null> => {
-    try {
-      const check = await apiGet<{ exists: boolean; is_onboarded: boolean }>(
-        '/api/users/check',
-      );
-      return check;
-    } catch {
-      return null;
+  }> => {
+    const maxRetries = 3;
+    let lastError: any;
+
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      try {
+        // Small increasing delay to let Firebase auth state settle
+        if (attempt > 0) {
+          await new Promise((r) => setTimeout(r, 500 * attempt));
+        }
+        const check = await apiGet<{ exists: boolean; is_onboarded: boolean }>(
+          '/api/users/check',
+        );
+        return check;
+      } catch (err) {
+        lastError = err;
+        // If it's a 401, the token may not be ready yet — retry
+        const errMsg = String(err);
+        if (errMsg.includes('401') && attempt < maxRetries - 1) {
+          continue;
+        }
+        // For other errors, don't retry
+        break;
+      }
     }
+    // Re-throw so the caller can distinguish between
+    // "user doesn't exist" and "API call failed"
+    throw lastError;
   };
 
   /**
@@ -83,9 +104,20 @@ const LoginScreen: React.FC = () => {
       await signInWithCredential(auth, credential);
 
       // Validate user exists in our database
-      const check = await validateUserExists();
+      let check: { exists: boolean; is_onboarded: boolean };
+      try {
+        check = await validateUserExists();
+      } catch (apiErr) {
+        // API call itself failed (network/server error) — NOT "user doesn't exist"
+        Alert.alert(
+          'Connection error',
+          'Could not reach the server. Please check that the backend is running and try again.',
+        );
+        await cleanupAuth();
+        return;
+      }
 
-      if (!check || !check.exists) {
+      if (!check.exists) {
         // User not registered in our DB — block access
         await cleanupAuth();
         Alert.alert(
@@ -130,9 +162,19 @@ const LoginScreen: React.FC = () => {
       await signInWithEmailAndPassword(auth, email.trim(), password);
 
       // 2. Validate user exists in our database
-      const check = await validateUserExists();
+      let check: { exists: boolean; is_onboarded: boolean };
+      try {
+        check = await validateUserExists();
+      } catch (apiErr) {
+        // API call itself failed (network/server error) — NOT "user doesn't exist"
+        Alert.alert(
+          'Connection error',
+          'Could not reach the server. Please check that the backend is running and try again.',
+        );
+        return;
+      }
 
-      if (!check || !check.exists) {
+      if (!check.exists) {
         // Firebase account exists but no DB record — block access
         await cleanupAuth();
         Alert.alert(
