@@ -13,8 +13,8 @@ from app.routers import chat, journals, moods, users
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Create database tables on startup and seed a Demo User."""
-    from app.database import engine, Base, AsyncSessionLocal
-    from app.models import User
+    from app.database import engine, async_session
+    from app.models import Base, User
     from sqlalchemy.future import select
 
     # Initialize tables natively
@@ -22,7 +22,7 @@ async def lifespan(app: FastAPI):
         await conn.run_sync(Base.metadata.create_all)
         
     # Auto-seed the Demo User for bypassed API auth
-    async with AsyncSessionLocal() as session:
+    async with async_session() as session:
         result = await session.execute(select(User).where(User.firebase_uid == "demo_user_123"))
         demo_user = result.scalar_one_or_none()
         if not demo_user:
