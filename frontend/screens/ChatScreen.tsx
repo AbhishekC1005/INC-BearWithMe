@@ -225,7 +225,8 @@ const ChatScreen: React.FC = () => {
     try {
       await sendChatMessage(trimmed);
     } catch (e: any) {
-      Alert.alert('Error', 'Adam could not respond. Please try again.');
+      console.error('Chat error:', e);
+      Alert.alert('Error', `Adam could not respond: ${e.message}`);
     } finally {
       setIsThinking(false);
       setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 100);

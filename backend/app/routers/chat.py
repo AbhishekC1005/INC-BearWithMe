@@ -220,7 +220,7 @@ async def send_message(
         select(JournalEntry)
         .where(JournalEntry.user_id == user_id)
         .order_by(JournalEntry.created_at.desc())
-        .limit(5)
+        .limit(2)
     )
     recent_journals = journals_result.scalars().all()
 
@@ -247,7 +247,7 @@ async def send_message(
     # Run synchronous Gemini call in a thread to avoid blocking
     def _call_gemini():
         response = client.models.generate_content(
-            model="gemini-2.0-flash",
+            model="gemini-2.5-flash",
             contents=gemini_messages,
         )
         return response.text

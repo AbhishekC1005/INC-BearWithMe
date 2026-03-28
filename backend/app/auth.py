@@ -26,34 +26,8 @@ async def get_current_user_id(
     creds: HTTPAuthorizationCredentials | None = Depends(_bearer_scheme),
 ) -> str:
     """Verify the Firebase ID token and return the uid.
-
-    Usage in routers:
-        user_id: str = Depends(get_current_user_id)
+    
+    DEMO MODE ACTIVE: This unconditionally bypasses Firebase security
+    and forces the entire backend to use a single mock user profile.
     """
-    if creds is None:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Missing authorization header",
-        )
-
-    token = creds.credentials
-    try:
-        decoded = auth.verify_id_token(token)
-    except auth.ExpiredIdTokenError:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Token expired — please sign in again",
-        )
-    except auth.InvalidIdTokenError:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid token",
-        )
-    except Exception:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Could not validate credentials",
-        )
-
-    uid: str = decoded["uid"]
-    return uid
+    return "demo_user_123"

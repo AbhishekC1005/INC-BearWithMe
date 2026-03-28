@@ -64,10 +64,10 @@ const LoginScreen: React.FC = () => {
   const cleanupAuth = async () => {
     try {
       await GoogleSignin.signOut();
-    } catch {}
+    } catch { }
     try {
       await firebaseSignOut(auth);
-    } catch {}
+    } catch { }
   };
 
   const handleGoogleSignIn = async () => {
